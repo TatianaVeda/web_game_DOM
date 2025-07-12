@@ -1,0 +1,24 @@
+{
+  "name": "web-game",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:client": "vite --config client/vite.config.ts",
+    "dev:server": "ts-node server/index.ts",
+    "build:client": "vite build --config client/vite.config.ts",
+    "build:server": "tsc -p server/tsconfig.json",
+    "start": "node dist/server/index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.15.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "@types/node": "^20.11.30",
+    "@types/ws": "^8.5.10",
+    "ts-node": "^10.9.2"
+  }
+} 

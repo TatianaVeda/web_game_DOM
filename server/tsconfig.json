@@ -2,15 +2,24 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "../dist/server",
-    "rootDir": "./",
-    "baseUrl": "./",
+    "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
     },
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "node",
     "esModuleInterop": true,
-    "module": "commonjs",
-    "target": "ES2020"
+    "resolveJsonModule": true,
+    "rootDir": "../" // Важно: чтобы shared и server были внутри rootDir
   },
-  "include": ["*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "./*.ts",
+    "./**/*.ts",
+    "../shared/**/*.ts"
+  ],
+  "exclude": [
+    "../node_modules",
+    "../dist"
+  ]
 } 

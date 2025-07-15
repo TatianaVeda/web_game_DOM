@@ -6,7 +6,9 @@ export type ClientEvent =
   | { type: 'pause'; payload: {} }
   | { type: 'resume'; payload: {} }
   | { type: 'quit'; payload: {} }
+  | { type: 'collect'; payload: { resourceId: string } }
   | { type: 'chat'; payload: { message: string } };
+
 
 // События от сервера к клиенту
 export type ServerEvent =
@@ -20,4 +22,6 @@ export type ServerEvent =
   | { type: 'timer'; payload: { time: number } }
   | { type: 'end'; payload: { winner: string } }
   | { type: 'chat'; payload: { from: string; message: string } }
+  | { type: 'resource-removed'; payload: { resourceId: string } }
+  | { type: 'score'; payload: { scores: Array<{ id: string; name: string; score: number }> }} //playerId: string; score: number } 
   | { type: 'error'; payload: { message: string } }; 

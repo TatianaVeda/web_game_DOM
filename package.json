@@ -7,18 +7,25 @@
     "dev:client": "vite --config client/vite.config.ts",
     "dev:server": "ts-node server/index.ts",
     "build:client": "vite build --config client/vite.config.ts",
-    "build:server": "tsc -p server/tsconfig.json",
-    "start": "node dist/server/index.js"
+    "build:server": "tsc -p server",
+    "build": "npm run build:client && npm run build:server",
+    "start:server": "node dist/server/index.js",
+    "start": "npm run build:client && npm run build:server && npm run start:server"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "ws": "^8.15.1"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "vite": "^5.2.8",
+    "@types/express": "^5.0.3",
     "@types/node": "^20.11.30",
+    "@types/socket.io": "^3.0.1",
     "@types/ws": "^8.5.10",
-    "ts-node": "^10.9.2"
+    "concurrently": "^9.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8"
   }
-} 
+}

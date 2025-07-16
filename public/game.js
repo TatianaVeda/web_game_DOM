@@ -38,15 +38,26 @@ class Game {
     });
 
     this.socket.on('playerJoined', (player) => {
-      console.log("player");
-      console.log(player);
+      // console.log("player");
+      // console.log(player);
+       console.log("player joined:", player);
       this.socketId = player.id;
       if (!this.players.has(player.id)) {
         this.players.set(player.id, {
           ...player,
           element: this.createPlayerElement(player)
+          
         });
       }
+  this.isHost = player.isHost;
+  this.updateHostControls();
+  this.updateScoreboard();
+
+  if (player.id === this.socketId) {
+    document.getElementById('joinScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'block';
+  }
+
 
       this.isHost = player.isHost;
 
@@ -62,12 +73,16 @@ class Game {
     this.socket.on('playerMoved', (player) => {
       const existingPlayer = this.players.get(player.id);
       if (existingPlayer && player.alive) {
+        const oldLives = existingPlayer.lives;
         existingPlayer.x = player.x;
         existingPlayer.y = player.y;
         existingPlayer.collisionImmunity = player.collisionImmunity;
         existingPlayer.lives = player.lives; // Update lives
         this.updatePlayerPosition(existingPlayer);
         this.updateLivesIndicator(existingPlayer); // Update lives indicator
+        if (player.id === this.socketId && player.lives < oldLives) {
+      window.SoundManager.playHit();
+    }
       }
     });
 
@@ -135,16 +150,26 @@ class Game {
       this.updateScoreboard();
     });
 
+    this.socket.on('joinError', (message) => {
+  const errorDiv = document.getElementById('joinError');
+  errorDiv.textContent = message;
+  errorDiv.style.color = 'red';
+});
+
     this.socket.on('gameStarted', () => {
-      this.gameRunning = true;
-      if (this.isPaused) {
-        this.togglePause();
-      }
-      const startButton = document.getElementById('startButton');
-      if (startButton) {
-        startButton.style.display = 'none';
-      }
-    });
+  this.gameRunning = true;
+ 
+  window.SoundManager.playStart();
+
+  if (this.isPaused) {
+    this.togglePause();
+  }
+  const startButton = document.getElementById('startButton');
+  if (startButton) {
+    startButton.style.display = 'none';
+  }
+});
+
 
     this.socket.on('timerUpdate', (timeLeft) => {
       if (this.timerDisplay) {
@@ -156,6 +181,11 @@ class Game {
 
     this.socket.on('pauseStateChanged', ({ isPaused, playerName }) => { // Destructure the object
       this.isPaused = isPaused;
+        if (isPaused) {
+    window.SoundManager.playPause();
+  } else {
+    window.SoundManager.playStart();
+  }
       console.log("Pause state changed by:", playerName);
 
       const overlay = document.getElementById('pauseOverlay');
@@ -207,34 +237,65 @@ class Game {
     });
 
 
-    this.socket.on('gameOver', (data) => {
+this.socket.on('gameOver', () => {
 
-      this.gameRunning = false;
-      this.showPauseOverlay('Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}', true);
-      if (this.isHost) {
-        const startButton = document.getElementById('startButton');
-        if (startButton) {
-          startButton.style.display = 'block';
-        }
-      }
-      this.players.forEach(player => {
-        if (data.winner && player.id === data.winner.id) {
-          player.wins = data.winner.wins;
-        }
-        player.alive = true;
-        player.element.style.display = 'block';
-      });
+  this.gameRunning = false;
 
-      this.updateScoreboard();
+  window.SoundManager.playVictory();
 
-      this.floatingTrunk.forEach(object => {
-        const element = document.getElementById(object.id);
-        if (element) {
-          element.remove();
-        }
-      });
-      this.floatingTrunk = [];
-    });
+  this.showResults();
+
+  if (this.isHost) {
+    const startButton = document.getElementById('startButton');
+    if (startButton) {
+      startButton.style.display = 'block';
+    }
+  }
+
+  this.players.forEach(player => {
+    player.alive = true;
+    player.element.style.display = 'block';
+  });
+
+  this.floatingTrunk.forEach(object => {
+    const el = document.getElementById(object.id);
+    if (el) el.remove();
+  });
+  this.floatingTrunk = [];
+
+});
+
+
+
+    // this.socket.on('gameOver', (data) => {
+
+    //   this.gameRunning = false;
+    //   window.SoundManager.playVictory();
+    //   this.showPauseOverlay('Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}', true);
+    //   if (this.isHost) {
+    //     const startButton = document.getElementById('startButton');
+    //     if (startButton) {
+    //       startButton.style.display = 'block';
+    //     }
+    //   }
+    //   this.players.forEach(player => {
+    //     if (data.winner && player.id === data.winner.id) {
+    //       player.wins = data.winner.wins;
+    //     }
+    //     player.alive = true;
+    //     player.element.style.display = 'block';
+    //   });
+
+    //   this.updateScoreboard();
+
+    //   this.floatingTrunk.forEach(object => {
+    //     const element = document.getElementById(object.id);
+    //     if (element) {
+    //       element.remove();
+    //     }
+    //   });
+    //   this.floatingTrunk = [];
+    // });
   }
 
   setupControls() {
@@ -343,13 +404,13 @@ class Game {
   }
 
   updateScoreboard() {
-    this.scoreBoard.innerHTML = Array.from(this.players.values())
-      .map(player => `
-        <div class="player-score">
-          ${player.name}: ${player.wins} wins
-          ${player.isHost ? '(Host)' : ''}
-        </div>
-      `).join('');
+    // this.scoreBoard.innerHTML = Array.from(this.players.values())
+    //   .map(player => `
+    //     <div class="player-score">
+    //       ${player.name}: ${player.wins} wins
+    //       ${player.isHost ? '(Host)' : ''}
+    //     </div>
+    //   `).join('');
   }
 
   updateHostControls() {
@@ -371,8 +432,8 @@ class Game {
     this.playerName = playerName.trim();
     this.socket.emit('joinGame', { name: this.playerName, icon: selectedIcon });
 
-    document.getElementById('joinScreen').style.display = 'none';
-    document.getElementById('gameScreen').style.display = 'block';
+    // document.getElementById('joinScreen').style.display = 'none';
+    // document.getElementById('gameScreen').style.display = 'block';
   }
 
   startGame() {
@@ -441,8 +502,77 @@ class Game {
   resetGame() {
     console.log(this.playerName)
     this.socket.emit('resetGame', this.playerName);
-  }
+      }
 
+showResults() {
+  const counts = window.coinManager.playerCounts;
+
+  const arr = Array.from(this.players.values()).map(p => ({
+    id: p.id,
+    name: p.name,
+    count: counts[p.id] || 0
+  }));
+
+  arr.sort((a, b) => b.count - a.count);
+
+  const top4 = arr.slice(0, 4);
+
+  const overlay = document.createElement('div');
+  overlay.id = 'resultsOverlay';
+  overlay.style.cssText = `
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-family: sans-serif;
+    z-index: 10000;
+  `;
+
+  const fireworks = document.createElement('div');
+  fireworks.className = 'fireworks';
+  overlay.appendChild(fireworks);
+
+  const board = document.createElement('div');
+  board.style.textAlign = 'center';
+  board.style.marginTop = '20px';
+
+  const trophies = ['🥇', '🥈', '🥉', '🏅'];
+
+  top4.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.style.fontSize = '24px';
+    row.style.margin = '8px 0';
+    row.innerHTML = `
+      <span style="font-size:48px">${trophies[i]}</span>
+      <strong>${i + 1}.</strong>
+      ${p.name} — <strong>${p.count} 💰</strong>
+    `;
+    board.appendChild(row);
+  });
+
+  overlay.appendChild(board);
+
+  this.gameContainer.appendChild(overlay);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .fireworks {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      /* Замените путь на ваш GIF фейерверков */
+      background: url('/images/fireworks.gif') center/cover no-repeat;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  `;
+  document.head.appendChild(style);
+}Ы
 
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');
@@ -507,4 +637,5 @@ class Game {
 
 document.addEventListener('DOMContentLoaded', () => {
   window.game = new Game();
+  window.coinManager = new CoinManager(window.game);
 });

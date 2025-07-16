@@ -57,7 +57,22 @@ io.on('connection', (socket) => {
 
   socket.on('joinGame', (data) => {
     console.log('A user joined game:', data.name);
-    const player = new Player(400, 500, socket.id, data.name, data.icon);
+
+    // Check if name is already taken
+    const nameExists = Array.from(gameState.players.values()).some(
+      (player) => player.name === data.name
+    );
+    if (nameExists) {
+      socket.emit('nameTaken', { message: 'This name is already taken. Please choose another one.' });
+      return;
+    }
+
+    const spacing = 100;
+    const startX = 200;
+    const playerIndex = gameState.players.size;
+    const x = startX + playerIndex * spacing;
+    const y = 500;
+    const player = new Player(x, y, socket.id, data.name, data.icon);
 
     // just set first player host and make sure set dead if game is running
     if (gameState.players.size === 0) {

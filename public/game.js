@@ -235,6 +235,15 @@ class Game {
       });
       this.floatingTrunk = [];
     });
+
+    this.socket.on('nameTaken', (data) => {
+      const errorDiv = document.getElementById('joinError');
+      errorDiv.textContent = data.message || 'Name is already taken!';
+      errorDiv.style.color = 'red';
+      // Return to the name input screen
+      document.getElementById('joinScreen').style.display = 'block';
+      document.getElementById('gameScreen').style.display = 'none';
+    });
   }
 
   setupControls() {

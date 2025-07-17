@@ -3,7 +3,9 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 let ObjectCounter = 0;
-
+function generateObjectId() {
+  return `object-${Date.now()}-${ObjectCounter++}`;
+}
 class Player {
   constructor(x, y, id, name, icon) {
     this.x = x;
@@ -18,6 +20,7 @@ class Player {
     this.objectMulti = 1;
     this.lives = 3;
     this.collisionImmunity = false;
+    this.coinCount = 0; 
   }
 
   move(x, y) {
@@ -28,7 +31,7 @@ class Player {
 
 const MOVEMENTSPEED = 5;
 const OBJECTBASESPEED = 2.5;
-
+const COIN_SPEED = 2;
 const PLAYER_RADIUS = 15;
 
 const GAMEWINDOW_SIZE = { x: 1200, y: 800 };
@@ -36,11 +39,18 @@ const GAMEWINDOW_SIZE = { x: 1200, y: 800 };
 const gameState = {
   players: new Map(),
   floatingTrunk: [],
+  coins:         [],  // coins on the map
   isGameRunning: false,
+  isPaused:      false,
   timer: 0,
   lastUpdate: Date.now(),
   tickRate: 1000 / 60,
 };
+const MAX_COINS = 10;
+let coinCounter = 0;
+function generateCoinId() {
+  return `coin-${Date.now()}-${coinCounter++}`;
+}
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -56,6 +66,12 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('joinGame', (data) => {
+  const nameTaken = Array.from(gameState.players.values())
+    .some(p => p.name === data.name);
+  if (nameTaken) {
+    socket.emit('joinError', 'Name is already taken. Please choose another.');
+    return;
+  }
     console.log('A user joined game:', data.name);
 
     // Check if name is already taken
@@ -89,8 +105,14 @@ io.on('connection', (socket) => {
 
     gameState.players.set(socket.id, player);
 
-    socket.emit('currentPlayers', Array.from(gameState.players.values()));
-    socket.broadcast.emit('currentPlayers', Array.from(gameState.players.values()));
+    // socket.emit('currentPlayers', Array.from(gameState.players.values()));
+    // socket.broadcast.emit('currentPlayers', Array.from(gameState.players.values()));
+    // socket.emit('playerJoined', player);
+    // Отправляем всем актуальный список игроков
+    const allPlayers = Array.from(gameState.players.values());
+    socket.emit('currentPlayers', allPlayers);
+    socket.broadcast.emit('currentPlayers', allPlayers);
+
     socket.emit('playerJoined', player);
   });
 
@@ -230,10 +252,45 @@ function gameLoop() {
   if (delta >= gameState.tickRate) {
     if (gameState.isGameRunning && !gameState.isPaused && gameState.players.size > 0) {
       updateFloatingTrunk();
+       gameState.coins.forEach((coin, index) => {
+       coin.y += coin.speed;
+       if (coin.y > GAMEWINDOW_SIZE.y + coin.size) {
+         gameState.coins.splice(index, 1);
+       }
+     });
+       if (gameState.coins.length < MAX_COINS && Math.random() < 0.02) {
+        gameState.coins.push({
+          id:   generateCoinId(),
+          x:    Math.random() * (GAMEWINDOW_SIZE.x - 30),
+          // y:    Math.random() * (GAMEWINDOW_SIZE.y - 30),
+           y:    0,
+          size: 30,
+          speed: COIN_SPEED + Math.random(),
+        });
+      }
+      gameState.coins = gameState.coins.filter(coin => {
+        for (const p of gameState.players.values()) {
+          if (!p.alive) continue;
+          const dx = coin.x + coin.size/2 - (p.x + PLAYER_RADIUS);
+          const dy = coin.y + coin.size/2 - (p.y + PLAYER_RADIUS);
+          if (Math.hypot(dx, dy) < coin.size/2 + PLAYER_RADIUS) {
+            p.coinCount = (p.coinCount || 0) + 1;
+            io.emit('coinCollected', {
+              coinId:   coin.id,
+              playerId: p.id,
+              newCount: p.coinCount
+            });
+            return false;
+          }
+        }
+        return true;
+      });
       checkForCollisions();
       io.emit('gameState', {
         //players: Array.from(gameState.players.values()),
         floatingTrunk: gameState.floatingTrunk,
+        coins:         gameState.coins,
+        players:       Array.from(gameState.players.values()),
         timer: Math.floor(gameState.timer / 1000),
       });
       //gameState.timer = Math.floor((Date.now() - gameState.startTime) / 1000);
@@ -343,6 +400,7 @@ function resetGame() {
   gameState.isPaused = false;
   gameState.timer = 0;
   gameState.floatingTrunk = [];
+   gameState.coins         = []; 
   gameState.players.forEach(player => {
     player.alive = true;
     player.wins = 0;
@@ -350,6 +408,8 @@ function resetGame() {
     player.objectMulti = 1;
     player.lives = 3;
     player.collisionImmunity = false;
+  
+    player.coinCount = 0;
   });
 }
 

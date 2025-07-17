@@ -18,16 +18,16 @@
 		</div>
 		<div class="icon-selector">
 			<div class="icon-option selected" data-icon="boat_black">
-				<img src="boat_black.svg" alt="boat_black">
+				<img src="images/boat_black.svg" alt="boat_black">
 			</div>
 			<div class="icon-option" data-icon="boat_green">
-				<img src="boat_green.svg" alt="boat_green">
+				<img src="images/boat_green.svg" alt="boat_green">
 			</div>
 			<div class="icon-option" data-icon="boat_red">
-				<img src="boat_red.svg" alt="boat_red">
+				<img src="images/boat_red.svg" alt="boat_red">
 			</div>
 			<div class="icon-option" data-icon="boat_yellow">
-				<img src="boat_yellow.svg" alt="boat_yellow">
+				<img src="images/boat_yellow.svg" alt="boat_yellow">
 			</div>
 		</div>
 		<div id="joinError" class="error-message"></div>
@@ -42,7 +42,8 @@
 				<span class="heart">❤️</span>
 				<span class="heart">❤️</span>
 			</div>
-			<div class="score-board" id="scoreBoard"></div>
+			<!-- <div class="score-board" id="scoreBoard"></div> -->
+			<div class="score-board" id="leaderboard"></div>
 		</div>
 		<div class="game-controls">
 			<button id="pauseButton">Pause</button>
@@ -54,6 +55,8 @@
 		</div>
 		<!-- Scripts -->
 		<script src="/socket.io/socket.io.js"></script>
+		 <script src="/soundManager.js"></script>
+		 <script src="/coinManager.js"></script>
 		<script src="/game.js"></script>
 </body>
 <div id="customModal" class="modal" style="display:none;">

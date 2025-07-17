@@ -334,7 +334,7 @@ this.socket.on('gameOver', () => {
     const element = document.createElement('div');
     element.className = 'player-ball';
     element.innerHTML = `
-    <img src="${player.icon}.svg" alt="${player.name}" width="100%" height="100%" />
+    <img src="images/${player.icon}.svg" alt="${player.name}" width="100%" height="100%" />
     <span class="player-name">${player.name}</span>
   `;
     element.style.transform = `translate(${player.x}px, ${player.y}px)`;
@@ -615,7 +615,7 @@ showResults() {
         element = document.createElement('div');
         element.id = object.id;
         element.className = 'floating-trunk';
-        element.innerHTML = `<img src="trunk-wood.svg" width="100%" height="100%"/>`;
+        element.innerHTML = `<img src="images/trunk-wood.svg" width="100%" height="100%"/>`;
         this.gameContainer.appendChild(element);
       }
 

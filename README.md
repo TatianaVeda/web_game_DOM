@@ -21,8 +21,9 @@ The game can be accessed from http://localhost:3000
 
 ## Opening the game for multiplayer
 
-For making the game "multiplayer", you can use for example 'ngrok'.
+For making the game "multiplayer", you can use for example 'ngrok' **or Cloudflare Tunnel (cloudflared)**.
 
+### Option 1: ngrok
 - Navigate to https://ngrok.com
 Sign up and follow instructions to install the client based on your operating system: https://ngrok.com/download or use:
 
@@ -32,14 +33,32 @@ Sign up and follow instructions to install the client based on your operating sy
   
 - Continue the setup as instructed at https://dashboard.ngrok.com/get-started/setup
 
-- Because you server is lauched at http://localhost:3000, use the command: 
+- Because your server is launched at http://localhost:3000, use the command: 
 
   ```
   ngrok http 3000
   ```
-That will give you an URL of the type: 'https://************.ngrok-free.app
+That will give you an URL of the type: 'https://************.ngrok-free.app'
 
 - Give this URL to your friends for them to join the game.
+
+### Option 2: Cloudflare Tunnel (cloudflared)
+
+- Install cloudflared:
+  - [Download from official site](https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/)
+  - Or via npm:
+    ```
+    npm install -g cloudflared
+    ```
+- Start a tunnel to your local server:
+    ```
+    npx cloudflared tunnel --url http://localhost:3000
+    ```
+- After a few seconds, you will see a public URL like:
+    ```
+    https://your-tunnel-id.trycloudflare.com
+    ```
+- Share this URL with your friends so they can join your game from anywhere!
 
 ## Play the game
 

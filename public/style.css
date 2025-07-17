@@ -229,3 +229,28 @@ body {
     opacity: 0.5;
   }
 }
+
+/* Custom modal styles */
+.modal {
+  position: fixed;
+  z-index: 2000;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-content {
+  background: #222;
+  color: #fff;
+  padding: 30px 40px;
+  border-radius: 10px;
+  text-align: center;
+  min-width: 250px;
+}
+.modal-content button {
+  margin: 10px 15px 0 15px;
+  padding: 8px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}

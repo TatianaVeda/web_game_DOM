@@ -100,7 +100,7 @@ class Game {
       const player = this.players.get(playerId);
       if (player) {
         this.hidePauseOverlay();
-        this.showPauseOverlay(`Player ${player.name} disconnected from the game`, true)
+        this.showPauseOverlay(`Player ${player.name} disconnected from the game`, true, player.name)
         if (!this.isPaused) {
           this.isPaused = true;
         }
@@ -178,7 +178,7 @@ class Game {
         this.hidePauseOverlay()
       }
       if (this.players.size > 0) {
-        this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true);
+        this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset);
       }
 
       if (this.isHost) {
@@ -210,7 +210,7 @@ class Game {
     this.socket.on('gameOver', (data) => {
 
       this.gameRunning = false;
-      this.showPauseOverlay('Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}', true);
+      this.showPauseOverlay(`Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}`, true, data.winner ? data.winner.name : "No one");
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -264,6 +264,14 @@ class Game {
         this.keys.delete(e.key);
       }
     });
+
+    // Add Pause button handler
+    const pauseBtn = document.getElementById('pauseButton');
+    if (pauseBtn) {
+      pauseBtn.onclick = () => {
+        this.togglePause();
+      };
+    }
   }
 
   togglePause() {
@@ -387,41 +395,64 @@ class Game {
   startGame() {
     if (!this.isHost) return;
     if (this.players.size <= 1) {
-      alert('Not enough players to start the game!')
+      this.showSimpleModal('Not enough players to start the game!');
       return;
     }
     this.socket.emit('startGame');
   }
 
-  showPauseOverlay(message, fadeAway) {
+  showPauseOverlay(message, fadeAway, playerName) {
+    // Remove old overlay if exists
+    const oldOverlay = document.getElementById('pauseOverlay');
+    if (oldOverlay) oldOverlay.remove();
+
     const overlay = document.createElement('div');
     overlay.id = 'pauseOverlay';
     overlay.style.cssText = `
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 24px;
-      z-index: 1000;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      color: white; font-size: 24px; z-index: 1000;
     `;
-    overlay.innerHTML = `
-      <div>
-        <h2>${message}</h2>
-        <button id="resumeButton" style="margin-top: 20px; padding: 10px 20px; font-size: 18px;" onclick="game.togglePause()">Resume</button>
-        <button id "resetButton" style="margin-top: 20px; padding: 10px 20px; font-size: 18px;" onclick="game.resetGame()">Reset</button>
-        <button id="quitButton" style="margin-top: 10px; padding: 10px 20px; font-size: 18px;" onclick="game.quit()">Quit Game</button>
-        
-      </div>      
-    `;
+
+    // Always show pause menu with buttons and player name if provided
+    if (playerName) {
+      overlay.innerHTML = `
+        <div>
+          <h2>${message}</h2>
+          <p>By: <b>${playerName}</b></p>
+          <button id="resumeBtn">Continue</button>
+          <button id="restartBtn">Restart</button>
+          <button id="quitBtn">Quit</button>
+        </div>
+      `;
+    } else {
+      // Fallback: just show message (for fadeAway overlays)
+      overlay.innerHTML = `
+        <div>
+          <h2>${message}</h2>
+        </div>
+      `;
+    }
+
     this.gameContainer.appendChild(overlay);
 
+    // Button handlers for pause menu
+    if (playerName) {
+      document.getElementById('resumeBtn').onclick = () => {
+        this.togglePause();
+      };
+      document.getElementById('restartBtn').onclick = () => {
+        this.socket.emit('resetGame', this.playerName); // Broadcast who restarted
+      };
+      document.getElementById('quitBtn').onclick = () => {
+        this.socket.emit('playerQuit', this.playerName); // Broadcast who quit
+        window.location.reload();
+      };
+    }
+
+    // If fadeAway is true, auto-hide overlay after 4 seconds
     if (fadeAway) {
       setTimeout(() => {
         this.hidePauseOverlay();
@@ -430,6 +461,27 @@ class Game {
         }
       }, 4000);
     }
+  }
+
+  showSimpleModal(message) {
+    // Remove old modal if exists
+    let modal = document.getElementById('simpleModal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'simpleModal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <p>${message}</p>
+        <button id="simpleModalOk">OK</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('simpleModalOk').onclick = () => {
+      modal.remove();
+    };
   }
 
 
@@ -441,9 +493,28 @@ class Game {
   }
 
   quit() {
-    if (confirm('Are you sure you want to quit?')) {
+    // Use the custom modal for quit confirmation
+    const modal = document.getElementById('customModal');
+    modal.style.display = 'flex';
+
+    const okBtn = document.getElementById('modalOk');
+    const cancelBtn = document.getElementById('modalCancel');
+
+    okBtn.onclick = () => {
+      modal.style.display = 'none';
+      this.socket.emit('playerQuit', this.playerName); // Broadcast who quit
       window.location.reload();
-    }
+    };
+    cancelBtn.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
   }
 
 

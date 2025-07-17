@@ -69,9 +69,14 @@ io.on('connection', (socket) => {
 
     const spacing = 100;
     const startX = 200;
-    const playerIndex = gameState.players.size;
-    const x = startX + playerIndex * spacing;
     const y = 500;
+    // collect all taken X coordinates
+    const takenX = new Set(Array.from(gameState.players.values()).map(p => p.x));
+    // find the first free position in the row
+    let x = startX;
+    while (takenX.has(x)) {
+      x += spacing;
+    }
     const player = new Player(x, y, socket.id, data.name, data.icon);
 
     // just set first player host and make sure set dead if game is running
@@ -106,11 +111,18 @@ io.on('connection', (socket) => {
     }
   });
  
-  socket.on('resetGame', (playerToReset) => {
-    console.log('Game reseted by: ', playerToReset);
+  // Restart event: broadcast who restarted
+  socket.on('resetGame', (playerName) => {
+    console.log('Game reseted by: ', playerName);
     resetGame();
-    io.emit('resetGame', playerToReset);
+    io.emit('resetGame', playerName);
 });
+
+  // Quit event: broadcast who quit
+  socket.on('playerQuit', (playerName) => {
+    console.log('Player quit:', playerName);
+    io.emit('playerQuit', playerName);
+  });
 
 socket.on('disconnect', () => {
   console.log('A user disconnected:', socket.id);
@@ -128,7 +140,19 @@ socket.on('disconnect', () => {
   
   gameState.players.delete(socket.id);
 
-  
+  // Check: if there is only one alive player, declare the winner and end the game
+  const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
+  if (gameState.isGameRunning && alivePlayers.length === 1) {
+      gameState.isGameRunning = false;
+      const winner = alivePlayers[0];
+      if (winner) {
+        winner.wins++;
+      }
+      io.emit('gameOver', { winner });
+      resetGame();
+      return;
+  }
+
   io.emit('playerDisconnected', socket.id);
 
   if (wasHost && gameState.players.size > 0) {
@@ -189,6 +213,7 @@ socket.on('disconnect', () => {
     }
   });
 
+  // Pause event: broadcast who paused/unpaused
   socket.on('togglePause', (isPaused, playerName) => {
     gameState.isPaused = isPaused;
     console.log("Paused by:", playerName);

@@ -565,7 +565,6 @@ showResults() {
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      /* Замените путь на ваш GIF фейерверков */
       background: url('/images/fireworks.gif') center/cover no-repeat;
       opacity: 0.6;
       pointer-events: none;

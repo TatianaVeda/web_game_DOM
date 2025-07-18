@@ -1,4 +1,4 @@
-# web-game
+# web-game "Dodge Trunks"🚤🚤🚤
 
 ## Overview
 
@@ -62,8 +62,51 @@ That will give you an URL of the type: 'https://************.ngrok-free.app'
 
 ## Play the game
 
-Fill your name in the dedicated field. Choose you boat color. First player to join will be the host of the game. Host can lauch the game when at least two players are in.
+Fill your name in the dedicated field. Choose you boat color. 
 
-Move the boat with `up`, `left`, `down` and `right` arrow keys.
+Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` arrow keys.
 
 `Esc` opens menu, from where players can restart the game or give up.
+
+## New Features
+
+- **Collectible Coins:**
+  The game features collectible coins 🪙. Each player can collect coins during the game, and the number of coins is shown in real time on the leaderboard. The winner is determined by the highest coin count (or depending on lives).
+
+- **Sound Effects:**
+  The game includes sound effects for game start, pause, player hit, and victory🏆. Make sure to have your speakers on for the best experience!
+
+- **Pause Menu:**
+  The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game at any time. When a player pauses, restarts, or quits, their name is displayed to players.
+
+- **Competitive Interactivity:**
+ The game is competitive: players race to collect coins, avoid obstacles, and survive longer than their opponents. All actions (movement, collecting coins, pausing, restarting, quitting) are synchronized in real time for all participants. The winner is determined by skill, speed, and strategy, ensuring a fair and engaging multiplayer experience.
+
+- **Leaderboard:**
+  The game features a leaderboard that displays the top players based on coin count. The leaderboard is updated in real time as players collect coins.
+
+- **Overlay Windows:**
+  All important game events (pause, restart, player quit/disconnect, game over) are shown to all players via overlay windows.
+
+- **Keyboard Controls:**
+  Control your boat with the arrow keys. Keyboard input is smooth and responsive.
+
+- **Game Duration:**
+  Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted.
+
+- **Visuals and Performance:**
+  The game uses only DOM elements (no canvas), with smooth animations and a visually pleasing interface. Designed to run at 60 FPS.
+
+- **Multiplayer:**
+  Supports 2-4 players, works in modern browsers, and can be played from anywhere using public tunnels (ngrok, cloudflared).
+
+---
+## Team Members
+
+- Jean-Albert Antoine Campello
+- Ihor Shaposhnik
+- Tatiana Vedishcheva
+
+If you have any questions or suggestions, feel free to contact us on Discord!
+
+---

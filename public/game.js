@@ -168,6 +168,14 @@ class Game {
   if (startButton) {
     startButton.style.display = 'none';
   }
+  // Удаляем resultsOverlay при старте новой игры Delete resultOverlay when new game starts
+  const resultsOverlay = document.getElementById('resultsOverlay');
+  if (resultsOverlay) resultsOverlay.remove();
+  // Меняем текст кнопки Pause/Continue
+  const pauseBtn = document.getElementById('pauseButton');
+  if (pauseBtn) {
+    pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+  }
 });
 
 
@@ -180,16 +188,19 @@ class Game {
     });
 
     this.socket.on('pauseStateChanged', ({ isPaused, playerName }) => { // Destructure the object
+      console.log('[pauseStateChanged] isPaused:', isPaused, 'by', playerName, 'gameRunning:', this.gameRunning);
       this.isPaused = isPaused;
-        if (isPaused) {
-    window.SoundManager.playPause();
-  } else {
-    window.SoundManager.playStart();
-  }
+      if (!this.gameRunning) {
+        this.hidePauseOverlay();
+        return;
+      }
+      if (isPaused) {
+        window.SoundManager.playPause();
+      } else {
+        window.SoundManager.playStart();
+      }
       console.log("Pause state changed by:", playerName);
-
       const overlay = document.getElementById('pauseOverlay');
-
       if (!isPaused && overlay) {
         overlay.remove();
       }
@@ -202,7 +213,7 @@ class Game {
     });
 
     this.socket.on('resetGame', (playerToReset) => {
-
+      console.log('[resetGame] Received resetGame event from server, reset by:', playerToReset);
       this.gameRunning = false;
       if (this.showPauseOverlay) {
         this.hidePauseOverlay()
@@ -210,7 +221,6 @@ class Game {
       if (this.players.size > 0) {
         this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset);
       }
-
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -224,9 +234,7 @@ class Game {
         player.element.style.display = 'block';
         player.timerDisplay = 0;
       });
-
       this.updateScoreboard();
-
       this.floatingTrunk.forEach(object => {
         const element = document.getElementById(object.id);
         if (element) {
@@ -234,14 +242,23 @@ class Game {
         }
       });
       this.floatingTrunk = [];
+      // Delete resultOverlay when game is resetted
+      const resultsOverlay = document.getElementById('resultsOverlay');
+      if (resultsOverlay) resultsOverlay.remove();
+      // Change text of Pause/Continue button
+      const pauseBtn = document.getElementById('pauseButton');
+      if (pauseBtn) {
+        pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+      }
     });
 
 
-this.socket.on('gameOver', () => {
+this.socket.on('gameOver', (data) => {
 
       this.gameRunning = false;
       window.SoundManager.playVictory();
-      this.showPauseOverlay(`Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}`, true, data.winner ? data.winner.name : "No one");
+      //this.showPauseOverlay(`Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}`, true, data.winner ? data.winner.name : "No one");
+      this.showResults(data); 
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -297,6 +314,15 @@ this.socket.on('gameOver', () => {
     //   });
     //   this.floatingTrunk = [];
     // });
+    this.socket.on('notEnoughPlayers', (data) => {
+      this.showSimpleModal(data.message || 'Not enough players to start the game!');
+    });
+    this.socket.on('playerQuit', (playerName) => {
+      this.showPauseOverlay(`Player ${playerName} quit the game`, true, playerName);
+    });
+    this.socket.on('notHost', (data) => {
+      this.showSimpleModal(data.message || 'Only the host can restart the game!');
+    });
   }
 
   setupControls() {
@@ -330,12 +356,17 @@ this.socket.on('gameOver', () => {
   togglePause() {
     if (!this.gameRunning && !this.isPaused) return;
     this.isPaused = !this.isPaused;
+    // Меняем текст кнопки Pause/Continue
+    const pauseBtn = document.getElementById('pauseButton');
+    if (pauseBtn) {
+      pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+    }
     if (this.isPaused) {
       this.showPauseOverlay(`Game Paused by ${this.playerName}`);
     } else {
       this.hidePauseOverlay();
     }
-    console.log("paused by ", this.playerName)
+    console.log("[togglePause] paused by ", this.playerName, 'isPaused:', this.isPaused, 'gameRunning:', this.gameRunning);
     this.socket.emit('togglePause', this.isPaused, this.playerName);
   }
 
@@ -494,14 +525,16 @@ this.socket.on('gameOver', () => {
     // Button handlers for pause menu
     if (playerName) {
       document.getElementById('resumeBtn').onclick = () => {
-        this.togglePause();
+        this.socket.emit('togglePause', false, this.playerName);
+        this.hidePauseOverlay();
       };
       document.getElementById('restartBtn').onclick = () => {
         this.socket.emit('resetGame', this.playerName); // Broadcast who restarted
       };
       document.getElementById('quitBtn').onclick = () => {
-        this.socket.emit('playerQuit', this.playerName); // Broadcast who quit
-        window.location.reload();
+        this.socket.emit('playerQuit', this.playerName);
+        this.hidePauseOverlay();
+        setTimeout(() => window.location.reload(), 500);
       };
     }
 
@@ -628,6 +661,30 @@ showResults() {
   });
 
   overlay.appendChild(board);
+
+  // add a block with control buttons
+  const controls = document.createElement('div');
+  controls.style.marginTop = '30px';
+
+
+  const restartBtn = document.createElement('button');
+  restartBtn.textContent = 'Restart';
+  restartBtn.onclick = () => {
+    this.socket.emit('resetGame', this.playerName);
+    overlay.remove();
+  };
+
+  const quitBtn = document.createElement('button');
+  quitBtn.textContent = 'Quit';
+  quitBtn.onclick = () => {
+    this.socket.emit('playerQuit', this.playerName);
+    overlay.remove();
+    setTimeout(() => window.location.reload(), 500);
+  };
+
+  controls.appendChild(restartBtn);
+  controls.appendChild(quitBtn);
+  overlay.appendChild(controls);
 
   this.gameContainer.appendChild(overlay);
 

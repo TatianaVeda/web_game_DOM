@@ -60,6 +60,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 function generateObjectId() {
   return `object-${Date.now()}-${ObjectCounter++}`;
 } 
+function startNewGame(socket, playerName) {
+  if (gameState.players.size <= 1) {
+    socket.emit('notEnoughPlayers', { message: 'Not enough players to start the game!' });
+    return false;
+  }
+  if (!gameState.isGameRunning) {
+    gameState.isGameRunning = true;
+    gameState.startTime = Date.now();
+    io.emit('gameStarted', gameState);
+    // add one floatingTrunk at the start
+    gameState.floatingTrunk.push({
+      id: generateObjectId(),
+      x: Math.random() * GAMEWINDOW_SIZE.x,
+      y: 0,
+      size: 20 * (+(1 + Math.random() * 3.5).toFixed(1)),
+      speed: OBJECTBASESPEED + (+(1 + Math.random() * 2.5).toFixed(1)),
+      gathered: false,
+    });
+    return true;
+  }
+  return false;
+}
 io.on('connection', (socket) => {
 
   
@@ -108,7 +130,7 @@ io.on('connection', (socket) => {
     // socket.emit('currentPlayers', Array.from(gameState.players.values()));
     // socket.broadcast.emit('currentPlayers', Array.from(gameState.players.values()));
     // socket.emit('playerJoined', player);
-    // Отправляем всем актуальный список игроков
+    // send the current list of players to all clients
     const allPlayers = Array.from(gameState.players.values());
     socket.emit('currentPlayers', allPlayers);
     socket.broadcast.emit('currentPlayers', allPlayers);
@@ -135,9 +157,15 @@ io.on('connection', (socket) => {
  
   // Restart event: broadcast who restarted
   socket.on('resetGame', (playerName) => {
-    console.log('Game reseted by: ', playerName);
-    resetGame();
-    io.emit('resetGame', playerName);
+    const player = gameState.players.get(socket.id);
+    if (player && player.isHost) {
+      resetGame();
+      if (startNewGame(socket, playerName)) {
+        io.emit('resetGame', playerName);
+      }
+    } else {
+      socket.emit('notHost', { message: 'Only the host can restart the game!' });
+    }
 });
 
   // Quit event: broadcast who quit
@@ -217,22 +245,7 @@ socket.on('disconnect', () => {
 });
 
   socket.on('startGame', () => {
-    if (!gameState.isGameRunning) {
-      gameState.isGameRunning = true;
-      gameState.startTime = Date.now();
-      io.emit('gameStarted', gameState);
-
-      // add one floatingTrunk at the start . so poeple know it started
-      gameState.floatingTrunk.push({
-        id: generateObjectId(),
-        x: Math.random() * GAMEWINDOW_SIZE.x,
-        y: 0,
-        size: 20 * (+(1 + Math.random() * 3.5).toFixed(1)),
-        speed: OBJECTBASESPEED + (+(1 + Math.random() * 2.5).toFixed(1)),
-        gathered: false,
-      });
-
-    }
+    startNewGame(socket);
   });
 
   // Pause event: broadcast who paused/unpaused

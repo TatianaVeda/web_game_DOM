@@ -136,13 +136,13 @@ class Game {
     });
 
     this.socket.on('gameState', (state) => {
-      /*state.players.forEach(serverPlayer => {
+     state.players.forEach(serverPlayer => {
         const player = this.players.get(serverPlayer.name);
         if (player) {
           player.alive = serverPlayer.alive;
           this.updatePlayerPosition(player);
         }
-      });*/
+      });
 
       const minutes = Math.floor(state.timer / 60);
       const seconds = state.timer % 60;

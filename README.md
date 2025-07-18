@@ -74,7 +74,7 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
   The game features collectible coins 🪙. Each player can collect coins during the game, and the number of coins is shown in real time on the leaderboard. The winner is determined by the highest coin count (or depending on lives).
 
 - **Sound Effects:**
-  The game includes sound effects for game start, pause, player hit, and victory🏆. Make sure to have your speakers on for the best experience!
+  The game includes sound effects for game start, pause, player hit, collecting coins and victory🏆. Make sure to have your speakers on for the best experience!
 
 - **Pause Menu:**
   The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game at any time. When a player pauses, restarts, or quits, their name is displayed to players.

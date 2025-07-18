@@ -373,9 +373,10 @@ this.socket.on('gameOver', (data) => {
   createPlayerElement(player) {
     const element = document.createElement('div');
     element.className = 'player-ball';
+    const displayName = player.name + (player.isHost ? ' (Host)' : '');
     element.innerHTML = `
     <img src="images/${player.icon}.svg" alt="${player.name}" width="100%" height="100%" />
-    <span class="player-name">${player.name}</span>
+    <span class="player-name">${displayName}</span>
   `;
     element.style.transform = `translate(${player.x}px, ${player.y}px)`;
 
@@ -618,7 +619,7 @@ this.socket.on('gameOver', (data) => {
     this.socket.emit('resetGame', this.playerName);
       }
 
-showResults(data) {
+showResults() {
   const counts = window.coinManager.playerCounts;
   const arr = Array.from(this.players.values()).map(p => ({
     id: p.id,

@@ -13,17 +13,17 @@ class CoinManager {
   setupSocket() {
     const sock = this.game.socket;
 
-    // при каждом фрейме: сервер шлёт список монет и игроков
+    // for each frame: server sends list of coins and players )
     sock.on('gameState', state => {
         console.log('Received gameState.coins:', state.coins);
-      // обновляем монетки
+      // update coins
       this.syncCoins(state.coins);
-      // обновляем рейтинг
+      // update ranking
       state.players.forEach(p => this.playerCounts[p.id] = p.coinCount||0);
       this.updateRanking();
     });
 
-    // когда монета собрана — анимируем исчезновение
+    // when coin is collected — animate disappearance
     sock.on('coinCollected', ({ coinId, playerId }) => {
       const el = this.coins.get(coinId);
       if (el) {
@@ -31,15 +31,15 @@ class CoinManager {
         setTimeout(() => el.remove(), 300);
         this.coins.delete(coinId);
       }
-      // можно тут дополнительно проигрывать звук
+      // you can play sound here
     });
   }
 
-  // создаёт/удаляет DOM у монет по списку с сервера
+  // creates/deletes DOM of coins by the list from the server
   syncCoins(serverCoins) {
     const ids = new Set(serverCoins.map(c => c.id));
 
-    // удаляем лишние
+    // delete extra
     this.coins.forEach((el, id) => {
       if (!ids.has(id)) {
         el.remove();
@@ -47,7 +47,7 @@ class CoinManager {
       }
     });
 
-    // добавляем новые
+    // add new
     serverCoins.forEach(c => {
       if (!this.coins.has(c.id)) {
         const el = document.createElement('div');
@@ -60,21 +60,21 @@ class CoinManager {
         this.container.appendChild(el);
         this.coins.set(c.id, el);
       } else {
-        // обновляем позицию
+        // update position
         this.coins.get(c.id).style.transform = `translate(${c.x}px, ${c.y}px)`;
       }
     });
   }
 
-  // строит рейтинг по количеству монет и рисует в scoreBoard
+  // builds ranking by the number of coins and draws in scoreBoard
   updateRanking() {
-    // собираем массив [name, count]
+    // collect array [name, count]
     const arr = Array.from(this.game.players.values())
       .map(p => ({ name: p.name, count: this.playerCounts[p.id]||0 }));
-    // сортируем по убыванию
+    // sort by descending
     arr.sort((a,b) => b.count - a.count);
 
-    // рисуем под табло или вместо него
+    // draw under the board or instead of it
    const board = document.getElementById('leaderboard');
     board.innerHTML = arr.map((p,i) =>
       `<div class="player-score">
@@ -83,7 +83,7 @@ class CoinManager {
     ).join('');
   }
 
-  // Внедрим CSS для анимации монет
+  // Inject CSS for coin animation
  injectCSS() {
   const css = `
     .coin {
@@ -108,7 +108,7 @@ class CoinManager {
 }
 }
 
-// подключаемся после Game
+// connect after Game
 document.addEventListener('DOMContentLoaded', () => {
   if (window.game) {
     window.coinManager = new CoinManager(window.game);

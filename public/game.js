@@ -20,9 +20,11 @@ class Game {
     this.lastMoveSent = 0; // timestamp of last move sent to server
     this.moveThrottle = 1000 / 60; // player's movement throttle in milliseconds
 
+    this.loopId = null;
+    this.isActive = false;
+
     this.setupSocketListeners();
     this.setupControls();
-    this.startGameLoop();
     this.setupJoinHandlers();
   }
 
@@ -56,6 +58,7 @@ class Game {
   if (player.id === this.socketId) {
     document.getElementById('joinScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'block';
+    this.startGameLoop(); // start game loop only after entering the game
   }
 
 
@@ -158,6 +161,7 @@ class Game {
 
     this.socket.on('gameStarted', () => {
   this.gameRunning = true;
+  this.isPaused = false;
  
   window.SoundManager.playStart();
 
@@ -168,14 +172,17 @@ class Game {
   if (startButton) {
     startButton.style.display = 'none';
   }
-  // Удаляем resultsOverlay при старте новой игры Delete resultOverlay when new game starts
+  //  Delete resultOverlay when new game starts
   const resultsOverlay = document.getElementById('resultsOverlay');
   if (resultsOverlay) resultsOverlay.remove();
-  // Меняем текст кнопки Pause/Continue
+  // Change text of Pause/Continue button
   const pauseBtn = document.getElementById('pauseButton');
   if (pauseBtn) {
     pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
   }
+  //Show overlay "Game started by X" to all players
+  this.showPauseOverlay(`Game started by ${this.playerName}`, true, this.playerName, false);
+  this.updateHostControls();
 });
 
 
@@ -196,31 +203,23 @@ class Game {
       }
       if (isPaused) {
         window.SoundManager.playPause();
+        this.showPauseOverlay(`Game paused by ${playerName}`, false, playerName, true); // Меню паузы
       } else {
         window.SoundManager.playStart();
+        this.hidePauseOverlay();
       }
       console.log("Pause state changed by:", playerName);
-      const overlay = document.getElementById('pauseOverlay');
-      if (!isPaused && overlay) {
-        overlay.remove();
-      }
-      if (isPaused && overlay) {
-        return;
-      }
-      if (isPaused && !overlay) {
-        this.showPauseOverlay(`Game is paused by ${playerName}`);
-      }
     });
 
     this.socket.on('resetGame', (playerToReset) => {
-      console.log('[resetGame] Received resetGame event from server, reset by:', playerToReset);
+      console.log('[resetGame] isHost:', this.isHost, 'gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
       this.gameRunning = false;
-      if (this.showPauseOverlay) {
-        this.hidePauseOverlay()
-      }
+      this.isPaused = false;
+      this.hidePauseOverlay();
       if (this.players.size > 0) {
-        this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset);
+        this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset, false);
       }
+      this.updateHostControls(); //
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -318,7 +317,7 @@ this.socket.on('gameOver', (data) => {
       this.showSimpleModal(data.message || 'Not enough players to start the game!');
     });
     this.socket.on('playerQuit', (playerName) => {
-      this.showPauseOverlay(`Player ${playerName} quit the game`, true, playerName);
+      this.showPauseOverlay(`Player ${playerName} quit the game`, true, playerName, false);
     });
     this.socket.on('notHost', (data) => {
       this.showSimpleModal(data.message || 'Only the host can restart the game!');
@@ -354,15 +353,16 @@ this.socket.on('gameOver', (data) => {
   }
 
   togglePause() {
+    // You can press Pause always when player is in the game
     if (!this.gameRunning && !this.isPaused) return;
     this.isPaused = !this.isPaused;
-    // Меняем текст кнопки Pause/Continue
+    // Change text of Pause/Continue button
     const pauseBtn = document.getElementById('pauseButton');
     if (pauseBtn) {
       pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
     }
     if (this.isPaused) {
-      this.showPauseOverlay(`Game Paused by ${this.playerName}`);
+      this.showPauseOverlay(`Game paused by ${this.playerName}`, false, this.playerName, true); // Меню паузы
     } else {
       this.hidePauseOverlay();
     }
@@ -425,6 +425,7 @@ this.socket.on('gameOver', (data) => {
   }
 
   gameLoop(timestamp) {
+    // console.log('gameLoop tick', timestamp);
     if (!this.lastRender) this.lastRender = timestamp;
     const delta = timestamp - this.lastRender;
 
@@ -440,7 +441,9 @@ this.socket.on('gameOver', (data) => {
   }
 
   startGameLoop() {
-    requestAnimationFrame(this.gameLoop.bind(this));
+    if (this.isActive) return; // Prevent starting multiple loops
+    this.isActive = true;
+    this.loopId = requestAnimationFrame(this.gameLoop.bind(this));
   }
 
   updateScoreboard() {
@@ -456,7 +459,11 @@ this.socket.on('gameOver', (data) => {
   updateHostControls() {
     const startButton = document.getElementById('startButton');
     if (startButton) {
-      startButton.style.display = this.isHost ? 'block' : 'none';
+      startButton.style.display = (this.isHost && !this.gameRunning) ? 'block' : 'none';
+    }
+    const pauseBtn = document.getElementById('pauseButton');
+    if (pauseBtn) {
+      pauseBtn.disabled = !this.gameRunning;
     }
   }
 
@@ -485,7 +492,7 @@ this.socket.on('gameOver', (data) => {
     this.socket.emit('startGame');
   }
 
-  showPauseOverlay(message, fadeAway, playerName) {
+  showPauseOverlay(message, fadeAway, playerName, isPauseMenu = false) {
     // Remove old overlay if exists
     const oldOverlay = document.getElementById('pauseOverlay');
     if (oldOverlay) oldOverlay.remove();
@@ -500,19 +507,16 @@ this.socket.on('gameOver', (data) => {
       color: white; font-size: 24px; z-index: 1000;
     `;
 
-    // Always show pause menu with buttons and player name if provided
-    if (playerName) {
+    if (isPauseMenu && playerName) {
       overlay.innerHTML = `
         <div>
-          <h2>${message}</h2>
-          <p>By: <b>${playerName}</b></p>
+          <h2>Game paused by ${playerName}</h2>
           <button id="resumeBtn">Continue</button>
           <button id="restartBtn">Restart</button>
           <button id="quitBtn">Quit</button>
         </div>
       `;
     } else {
-      // Fallback: just show message (for fadeAway overlays)
       overlay.innerHTML = `
         <div>
           <h2>${message}</h2>
@@ -523,29 +527,34 @@ this.socket.on('gameOver', (data) => {
     this.gameContainer.appendChild(overlay);
 
     // Button handlers for pause menu
-    if (playerName) {
+    if (isPauseMenu && playerName) {
       document.getElementById('resumeBtn').onclick = () => {
         this.socket.emit('togglePause', false, this.playerName);
         this.hidePauseOverlay();
       };
       document.getElementById('restartBtn').onclick = () => {
-        this.socket.emit('resetGame', this.playerName); // Broadcast who restarted
+        this.hidePauseOverlay();
+        if (this.isHost) {
+          this.socket.emit('resetGame', this.playerName);
+        } else {
+          this.showSimpleModal('Only the host can restart the game!');
+        }
       };
       document.getElementById('quitBtn').onclick = () => {
-        this.socket.emit('playerQuit', this.playerName);
         this.hidePauseOverlay();
+        this.socket.emit('playerQuit', this.playerName);
         setTimeout(() => window.location.reload(), 500);
       };
     }
 
-    // If fadeAway is true, auto-hide overlay after 4 seconds
+    // Fade out overlay for events
     if (fadeAway) {
       setTimeout(() => {
         this.hidePauseOverlay();
         if (this.isPaused) {
           this.isPaused = false;
         }
-      }, 4000);
+      }, 2500);
     }
   }
 
@@ -609,19 +618,15 @@ this.socket.on('gameOver', (data) => {
     this.socket.emit('resetGame', this.playerName);
       }
 
-showResults() {
+showResults(data) {
   const counts = window.coinManager.playerCounts;
-
   const arr = Array.from(this.players.values()).map(p => ({
     id: p.id,
-    name: p.name,
+    name: p.name + (p.isHost ? ' (Host)' : ''),
     count: counts[p.id] || 0
   }));
-
   arr.sort((a, b) => b.count - a.count);
-
   const top4 = arr.slice(0, 4);
-
   const overlay = document.createElement('div');
   overlay.id = 'resultsOverlay';
   overlay.style.cssText = `
@@ -637,17 +642,13 @@ showResults() {
     font-family: sans-serif;
     z-index: 10000;
   `;
-
   const fireworks = document.createElement('div');
   fireworks.className = 'fireworks';
   overlay.appendChild(fireworks);
-
   const board = document.createElement('div');
   board.style.textAlign = 'center';
   board.style.marginTop = '20px';
-
   const trophies = ['🥇', '🥈', '🥉', '🏅'];
-
   top4.forEach((p, i) => {
     const row = document.createElement('div');
     row.style.fontSize = '24px';
@@ -659,9 +660,8 @@ showResults() {
     `;
     board.appendChild(row);
   });
-
   overlay.appendChild(board);
-
+/* 
   // add a block with control buttons
   const controls = document.createElement('div');
   controls.style.marginTop = '30px';
@@ -684,10 +684,10 @@ showResults() {
 
   controls.appendChild(restartBtn);
   controls.appendChild(quitBtn);
-  overlay.appendChild(controls);
+  overlay.appendChild(controls); */
 
   this.gameContainer.appendChild(overlay);
-
+  
   const style = document.createElement('style');
   style.textContent = `
     .fireworks {
@@ -700,7 +700,10 @@ showResults() {
     }
   `;
   document.head.appendChild(style);
-}Ы
+  setTimeout(() => {
+    overlay.remove();
+  }, 10000); //10 seconds
+}
 
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');

@@ -31,7 +31,7 @@ class CoinManager {
         setTimeout(() => el.remove(), 300);
         this.coins.delete(coinId);
       }
-      // you can play sound here
+      window.SoundManager.playCoin();
     });
   }
 

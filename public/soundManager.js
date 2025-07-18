@@ -5,7 +5,8 @@ const SoundManager = (function() {
     start:    '/sounds/game-start.mp3',
     pause:    '/sounds/game-pause.mp3',
     hit:      '/sounds/player-hit.mp3',
-    victory:  '/sounds/game-victory.mp3'
+    victory:  '/sounds/game-victory.mp3',
+    coin:     '/sounds/coin-sound.mp3'
   };
 
   const sounds = {};
@@ -32,6 +33,7 @@ const SoundManager = (function() {
     playPause:   () => play('pause'),
     playHit:     () => play('hit'),
     playVictory: () => play('victory'),
+    playCoin:    () => play('coin')
   };
 })();
 

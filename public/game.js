@@ -135,23 +135,46 @@ class Game {
       console.log('Player died:', playerId);
     });
 
+    // this.socket.on('gameState', (state) => {
+    //  state.players.forEach(serverPlayer => {
+    //     const player = this.players.get(serverPlayer.name);
+    //     if (player) {
+    //       player.alive = serverPlayer.alive;
+    //       this.updatePlayerPosition(player);
+    //     }
+    //   });
+
+    //   const minutes = Math.floor(state.timer / 60);
+    //   const seconds = state.timer % 60;
+    //   this.timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    //   this.floatingTrunk = state.floatingTrunk;
+    //   this.updateFloatingTrunk();
+    //   this.updateScoreboard();
+    // });
+
     this.socket.on('gameState', (state) => {
-     state.players.forEach(serverPlayer => {
-        const player = this.players.get(serverPlayer.name);
-        if (player) {
-          player.alive = serverPlayer.alive;
-          this.updatePlayerPosition(player);
-        }
-      });
+  state.players.forEach(serverPlayer => {
+    const player = this.players.get(serverPlayer.id); 
+    if (player) {
+      player.alive = serverPlayer.alive;
+      this.updatePlayerPosition(player);
+    }
+  });
 
-      const minutes = Math.floor(state.timer / 60);
-      const seconds = state.timer % 60;
-      this.timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  const elapsed   = state.timer;            
+  const limit     = state.timeLimit || 0;  
+  const remaining = Math.max(limit - elapsed, 0);
 
-      this.floatingTrunk = state.floatingTrunk;
-      this.updateFloatingTrunk();
-      this.updateScoreboard();
-    });
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  this.timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  this.floatingTrunk = state.floatingTrunk;
+  this.updateFloatingTrunk();
+  this.updateScoreboard();
+});
+
 
     this.socket.on('joinError', (message) => {
   const errorDiv = document.getElementById('joinError');
@@ -457,16 +480,37 @@ this.socket.on('gameOver', (data) => {
     //   `).join('');
   }
 
+  // updateHostControls() {
+  //   const startButton = document.getElementById('startButton');
+  //   if (startButton) {
+  //     startButton.style.display = (this.isHost && !this.gameRunning) ? 'block' : 'none';
+  //   }
+  //   const pauseBtn = document.getElementById('pauseButton');
+  //   if (pauseBtn) {
+  //     pauseBtn.disabled = !this.gameRunning;
+  //   }
+    
+  // }
+
   updateHostControls() {
-    const startButton = document.getElementById('startButton');
-    if (startButton) {
-      startButton.style.display = (this.isHost && !this.gameRunning) ? 'block' : 'none';
-    }
-    const pauseBtn = document.getElementById('pauseButton');
-    if (pauseBtn) {
-      pauseBtn.disabled = !this.gameRunning;
-    }
+  const startButton  = document.getElementById('startButton');
+  const pauseBtn     = document.getElementById('pauseButton');
+  const timerSelDiv  = document.getElementById('timerSelector');
+
+  if (this.isHost && !this.gameRunning) {
+    if (startButton)  startButton.style.display   = 'inline-block';
+    if (timerSelDiv)  timerSelDiv.style.display   = 'inline-block';
+  } else {
+    if (startButton)  startButton.style.display   = 'none';
+    if (timerSelDiv)  timerSelDiv.style.display   = 'none';
   }
+
+  if (pauseBtn) {
+    pauseBtn.disabled = !this.gameRunning;
+  }
+}
+
+  
 
   joinGame(playerName) {
     if (!playerName || playerName.trim() === '') {
@@ -490,7 +534,9 @@ this.socket.on('gameOver', (data) => {
       this.showSimpleModal('Not enough players to start the game!');
       return;
     }
-    this.socket.emit('startGame');
+    // this.socket.emit('startGame');
+     const minutes = parseInt(document.getElementById('timerSelect').value, 10);
+  this.socket.emit('startGame', { duration: minutes * 60 });
   }
 
   showPauseOverlay(message, fadeAway, playerName, isPauseMenu = false) {

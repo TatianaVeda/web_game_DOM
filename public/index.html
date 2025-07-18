@@ -47,6 +47,17 @@
 		</div>
 		<div class="game-controls">
 			<button id="pauseButton">Pause</button>
+			<div id="timerSelector" style="display: none; margin-right: 10px;">
+  <label for="timerSelect">Select time (min):</label>
+  <select id="timerSelect">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+  </select>
+</div>
+
 			<button id="startButton" onclick="game.startGame()" style="display: none">
 				Start Game
 			</button>
@@ -56,6 +67,7 @@
 		<script src="/socket.io/socket.io.js"></script>
 		 <script src="/soundManager.js"></script>
 		 <script src="/coinManager.js"></script>
+		 <script src="/bonusManager.js" type="module"></script>
 		<script src="/game.js"></script>
 </body>
 <div id="customModal" class="modal" style="display:none;">

@@ -39,10 +39,15 @@ const GAMEWINDOW_SIZE = { x: 1200, y: 800 };
 const gameState = {
   players: new Map(),
   floatingTrunk: [],
-  coins:         [],  // coins on the map
+  coins:         [],  
+   shields: [],      
+  hearts: [],       
+  lastShieldAt: 0,  
+  lastHeartAt: 0,
   isGameRunning: false,
   isPaused:      false,
   timer: 0,
+  timeLimit: 0,
   lastUpdate: Date.now(),
   tickRate: 1000 / 60,
 };
@@ -244,9 +249,14 @@ socket.on('disconnect', () => {
   }
 });
 
-  socket.on('startGame', () => {
-    startNewGame(socket);
-  });
+  // socket.on('startGame', () => {
+  //   startNewGame(socket);
+  // });
+  socket.on('startGame', ({ duration }) => {
+  if (startNewGame(socket)) {
+    gameState.timeLimit = duration;
+  }
+});
 
   // Pause event: broadcast who paused/unpaused
   socket.on('togglePause', (isPaused, playerName) => {
@@ -264,6 +274,88 @@ function gameLoop() {
 
   if (delta >= gameState.tickRate) {
     if (gameState.isGameRunning && !gameState.isPaused && gameState.players.size > 0) {
+
+       // Shield (щит) раз в 10 секунд:
+      if (now - gameState.lastShieldAt >= 10000) {
+        gameState.lastShieldAt = now;
+        gameState.shields.push({
+          id:    generateObjectId(),
+          x:     Math.random() * GAMEWINDOW_SIZE.x,
+          y:     0,
+          size:  30,
+          speed: OBJECTBASESPEED
+        });
+      }
+      // Heart (сердце) раз в 20 секунд:
+      if (now - gameState.lastHeartAt >= 20000) {
+        gameState.lastHeartAt = now;
+        gameState.hearts.push({
+          id:    generateObjectId(),
+          x:     Math.random() * GAMEWINDOW_SIZE.x,
+          y:     0,
+          size:  30,
+          speed: OBJECTBASESPEED
+        });
+      }
+
+      // ─────────────── БЛОК (B): ДВИЖЕНИЕ И УДАЛЕНИЕ БОНУСОВ ───────────────
+      // Перемещаем все бонусы вниз и убираем ушедшие за экран.
+      gameState.shields.forEach((b, i) => {
+        b.y += b.speed;
+        if (b.y > GAMEWINDOW_SIZE.y + b.size) {
+          gameState.shields.splice(i, 1);
+        }
+      });
+      gameState.hearts.forEach((b, i) => {
+        b.y += b.speed;
+        if (b.y > GAMEWINDOW_SIZE.y + b.size) {
+          gameState.hearts.splice(i, 1);
+        }
+      });
+
+      // ───── БЛОК (C): ПРОВЕРКА ПОДБОРА БОНУСОВ И ЭМИССИЯ СОБЫТИЙ ─────
+      // Если пересечение с игроком – удаляем бонус и кидаем событие.
+      gameState.shields = gameState.shields.filter(b => {
+  for (const p of gameState.players.values()) {
+    if (!p.alive) continue;
+    const dx = b.x - p.x, dy = b.y - p.y;
+    if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
+      // 1) даём иммунитет на сервере
+      p.collisionImmunity = true;
+      setTimeout(() => {
+        p.collisionImmunity = false;
+      }, 15000); // 15 секунд
+
+      // 2) оповещаем клиента, чтобы отрисовал анимацию сбора
+      io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
+
+      io.emit('playerMoved', p);
+
+      return false; 
+    }
+  }
+  return true;
+});
+     gameState.hearts = gameState.hearts.filter(b => {
+  for (const p of gameState.players.values()) {
+    if (!p.alive) continue;
+    const dx = b.x - p.x, dy = b.y - p.y;
+    if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
+      // 1) увеличиваем жизни на сервере, но не выше 3
+      if (p.lives < 3) {
+        p.lives++;
+      }
+      // 2) оповещаем клиента про сам факт сбора
+      io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
+      // 3) обновляем жизни у всех
+      io.emit('playerMoved', p);
+      return false;
+    }
+  }
+  return true;
+});
+
+      
       updateFloatingTrunk();
        gameState.coins.forEach((coin, index) => {
        coin.y += coin.speed;
@@ -303,11 +395,44 @@ function gameLoop() {
         //players: Array.from(gameState.players.values()),
         floatingTrunk: gameState.floatingTrunk,
         coins:         gameState.coins,
+        shields:       gameState.shields,   
+        hearts:        gameState.hearts,
         players:       Array.from(gameState.players.values()),
         timer: Math.floor(gameState.timer / 1000),
+        timeLimit: gameState.timeLimit,
       });
       //gameState.timer = Math.floor((Date.now() - gameState.startTime) / 1000);
       gameState.timer += delta;
+          if (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit) {
+
+        gameState.isGameRunning = false;
+
+        const playersArr = Array.from(gameState.players.values());
+        let winner = playersArr.reduce((best, p) => {
+          const pCount    = p.coinCount || 0;
+          const bestCount = best.coinCount || 0;
+          return (pCount > bestCount) ? p : best;
+        }, playersArr[0]);
+
+        if (!winner.alive) {
+          winner = null;
+        }
+
+        io.emit('gameOver', { winner });
+
+        resetGame();
+        return;
+      }
+      io.emit('gameState', {
+        floatingTrunk: gameState.floatingTrunk,
+        coins:         gameState.coins,
+         shields:       gameState.shields,    
+        hearts:        gameState.hearts,
+        players:       Array.from(gameState.players.values()),
+        timer:         Math.floor(gameState.timer / 1000),
+        timeLimit:     gameState.timeLimit
+      });
+    
     }
     gameState.lastUpdate = now;
   }

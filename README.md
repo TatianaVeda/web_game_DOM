@@ -62,7 +62,7 @@ That will give you an URL of the type: 'https://************.ngrok-free.app'
 
 ## Play the game
 
-Fill your name in the dedicated field. Choose you boat color. 
+Fill your name in the dedicated field. Choose you boat color. First player to join will be the host of the game. Host can lauch the game when at least two players are in.
 
 Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` arrow keys.
 

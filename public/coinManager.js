@@ -1,4 +1,3 @@
-// public/coinManager.js
 class CoinManager {
   constructor(game) {
     this.game       = game;

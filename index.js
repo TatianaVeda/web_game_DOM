@@ -93,6 +93,11 @@ io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
 
   socket.on('joinGame', (data) => {
+    if (gameState.players.size >= 4) {
+      
+      socket.emit('gameFull');
+     return;
+   }
   const nameTaken = Array.from(gameState.players.values())
     .some(p => p.name === data.name);
   if (nameTaken) {
@@ -132,10 +137,6 @@ io.on('connection', (socket) => {
 
     gameState.players.set(socket.id, player);
 
-    // socket.emit('currentPlayers', Array.from(gameState.players.values()));
-    // socket.broadcast.emit('currentPlayers', Array.from(gameState.players.values()));
-    // socket.emit('playerJoined', player);
-    // send the current list of players to all clients
     const allPlayers = Array.from(gameState.players.values());
     socket.emit('currentPlayers', allPlayers);
     socket.broadcast.emit('currentPlayers', allPlayers);
@@ -249,9 +250,6 @@ socket.on('disconnect', () => {
   }
 });
 
-  // socket.on('startGame', () => {
-  //   startNewGame(socket);
-  // });
   socket.on('startGame', ({ duration }) => {
   if (startNewGame(socket)) {
     gameState.timeLimit = duration;
@@ -275,7 +273,6 @@ function gameLoop() {
   if (delta >= gameState.tickRate) {
     if (gameState.isGameRunning && !gameState.isPaused && gameState.players.size > 0) {
 
-       // Shield (щит) раз в 10 секунд:
       if (now - gameState.lastShieldAt >= 10000) {
         gameState.lastShieldAt = now;
         gameState.shields.push({
@@ -286,7 +283,7 @@ function gameLoop() {
           speed: OBJECTBASESPEED
         });
       }
-      // Heart (сердце) раз в 20 секунд:
+
       if (now - gameState.lastHeartAt >= 20000) {
         gameState.lastHeartAt = now;
         gameState.hearts.push({
@@ -298,8 +295,6 @@ function gameLoop() {
         });
       }
 
-      // ─────────────── БЛОК (B): ДВИЖЕНИЕ И УДАЛЕНИЕ БОНУСОВ ───────────────
-      // Перемещаем все бонусы вниз и убираем ушедшие за экран.
       gameState.shields.forEach((b, i) => {
         b.y += b.speed;
         if (b.y > GAMEWINDOW_SIZE.y + b.size) {
@@ -313,20 +308,17 @@ function gameLoop() {
         }
       });
 
-      // ───── БЛОК (C): ПРОВЕРКА ПОДБОРА БОНУСОВ И ЭМИССИЯ СОБЫТИЙ ─────
-      // Если пересечение с игроком – удаляем бонус и кидаем событие.
       gameState.shields = gameState.shields.filter(b => {
   for (const p of gameState.players.values()) {
     if (!p.alive) continue;
     const dx = b.x - p.x, dy = b.y - p.y;
     if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
-      // 1) даём иммунитет на сервере
+  
       p.collisionImmunity = true;
       setTimeout(() => {
         p.collisionImmunity = false;
-      }, 15000); // 15 секунд
+      }, 15000); 
 
-      // 2) оповещаем клиента, чтобы отрисовал анимацию сбора
       io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
 
       io.emit('playerMoved', p);
@@ -341,13 +333,13 @@ function gameLoop() {
     if (!p.alive) continue;
     const dx = b.x - p.x, dy = b.y - p.y;
     if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
-      // 1) увеличиваем жизни на сервере, но не выше 3
+
       if (p.lives < 3) {
         p.lives++;
       }
-      // 2) оповещаем клиента про сам факт сбора
+   
       io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
-      // 3) обновляем жизни у всех
+  
       io.emit('playerMoved', p);
       return false;
     }
@@ -367,7 +359,7 @@ function gameLoop() {
         gameState.coins.push({
           id:   generateCoinId(),
           x:    Math.random() * (GAMEWINDOW_SIZE.x - 30),
-          // y:    Math.random() * (GAMEWINDOW_SIZE.y - 30),
+     
            y:    0,
           size: 30,
           speed: COIN_SPEED + Math.random(),
@@ -392,7 +384,7 @@ function gameLoop() {
       });
       checkForCollisions();
       io.emit('gameState', {
-        //players: Array.from(gameState.players.values()),
+     
         floatingTrunk: gameState.floatingTrunk,
         coins:         gameState.coins,
         shields:       gameState.shields,   
@@ -401,7 +393,6 @@ function gameLoop() {
         timer: Math.floor(gameState.timer / 1000),
         timeLimit: gameState.timeLimit,
       });
-      //gameState.timer = Math.floor((Date.now() - gameState.startTime) / 1000);
       gameState.timer += delta;
           if (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit) {
 
@@ -450,9 +441,6 @@ function checkForCollisions() {
       const dx = (object.x) - (player.x);
       const dy = (object.y) - (player.y);
 
-      //these are used if objects are rendered from top left x/y coordinate
-      //const dx = (object.x + (object.size / 2)) - (player.x + PLAYER_RADIUS);
-      //const dy = (object.y + (object.size / 2)) - (player.y + PLAYER_RADIUS);
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < (object.size / 2) + PLAYER_RADIUS) {
@@ -512,8 +500,6 @@ function updateFloatingTrunk() {
       }
     }
   });
-
-  
 
   const elapsedTime = gameState.timer / 1000;
   const numberOfObjects = Math.floor(elapsedTime / 5);

@@ -40,8 +40,6 @@ class Game {
     });
 
     this.socket.on('playerJoined', (player) => {
-      // console.log("player");
-      // console.log(player);
        console.log("player joined:", player);
       this.socketId = player.id;
       if (!this.players.has(player.id)) {
@@ -135,24 +133,6 @@ class Game {
       console.log('Player died:', playerId);
     });
 
-    // this.socket.on('gameState', (state) => {
-    //  state.players.forEach(serverPlayer => {
-    //     const player = this.players.get(serverPlayer.name);
-    //     if (player) {
-    //       player.alive = serverPlayer.alive;
-    //       this.updatePlayerPosition(player);
-    //     }
-    //   });
-
-    //   const minutes = Math.floor(state.timer / 60);
-    //   const seconds = state.timer % 60;
-    //   this.timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-    //   this.floatingTrunk = state.floatingTrunk;
-    //   this.updateFloatingTrunk();
-    //   this.updateScoreboard();
-    // });
-
     this.socket.on('gameState', (state) => {
   state.players.forEach(serverPlayer => {
     const player = this.players.get(serverPlayer.id); 
@@ -226,7 +206,7 @@ class Game {
       }
       if (isPaused) {
         window.SoundManager.playPause();
-        this.showPauseOverlay(`Game paused by ${playerName}`, false, playerName, true); // Меню паузы
+        this.showPauseOverlay(`Game paused by ${playerName}`, false, playerName, true); 
       } else {
         window.SoundManager.playStart();
         this.hidePauseOverlay();
@@ -242,7 +222,7 @@ class Game {
       if (this.players.size > 0) {
         this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset, false);
       }
-      this.updateHostControls(); //
+      this.updateHostControls(); 
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -305,37 +285,6 @@ this.socket.on('gameOver', (data) => {
 
 });
 
-
-
-    // this.socket.on('gameOver', (data) => {
-
-    //   this.gameRunning = false;
-    //   window.SoundManager.playVictory();
-    //   this.showPauseOverlay('Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}', true);
-    //   if (this.isHost) {
-    //     const startButton = document.getElementById('startButton');
-    //     if (startButton) {
-    //       startButton.style.display = 'block';
-    //     }
-    //   }
-    //   this.players.forEach(player => {
-    //     if (data.winner && player.id === data.winner.id) {
-    //       player.wins = data.winner.wins;
-    //     }
-    //     player.alive = true;
-    //     player.element.style.display = 'block';
-    //   });
-
-    //   this.updateScoreboard();
-
-    //   this.floatingTrunk.forEach(object => {
-    //     const element = document.getElementById(object.id);
-    //     if (element) {
-    //       element.remove();
-    //     }
-    //   });
-    //   this.floatingTrunk = [];
-    // });
     this.socket.on('notEnoughPlayers', (data) => {
       this.showSimpleModal(data.message || 'Not enough players to start the game!');
     });
@@ -456,8 +405,6 @@ this.socket.on('gameOver', (data) => {
     this.handleInput(timestamp);
 
     if (delta >= 1000) {
-      //const fps = Math.round(1000 / (timestamp - this.lastRender));
-      //console.log(`FPS: ${fps}`);
       this.lastRender = timestamp;
     }
 
@@ -471,26 +418,7 @@ this.socket.on('gameOver', (data) => {
   }
 
   updateScoreboard() {
-    // this.scoreBoard.innerHTML = Array.from(this.players.values())
-    //   .map(player => `
-    //     <div class="player-score">
-    //       ${player.name}: ${player.wins} wins
-    //       ${player.isHost ? '(Host)' : ''}
-    //     </div>
-    //   `).join('');
   }
-
-  // updateHostControls() {
-  //   const startButton = document.getElementById('startButton');
-  //   if (startButton) {
-  //     startButton.style.display = (this.isHost && !this.gameRunning) ? 'block' : 'none';
-  //   }
-  //   const pauseBtn = document.getElementById('pauseButton');
-  //   if (pauseBtn) {
-  //     pauseBtn.disabled = !this.gameRunning;
-  //   }
-    
-  // }
 
   updateHostControls() {
   const startButton  = document.getElementById('startButton');
@@ -510,8 +438,6 @@ this.socket.on('gameOver', (data) => {
   }
 }
 
-  
-
   joinGame(playerName) {
     if (!playerName || playerName.trim() === '') {
       const errorDiv = document.getElementById('joinError');
@@ -523,9 +449,6 @@ this.socket.on('gameOver', (data) => {
     const selectedIcon = document.querySelector('.icon-option.selected').dataset.icon;
     this.playerName = playerName.trim();
     this.socket.emit('joinGame', { name: this.playerName, icon: selectedIcon });
-
-    // document.getElementById('joinScreen').style.display = 'none';
-    // document.getElementById('gameScreen').style.display = 'block';
   }
 
   startGame() {
@@ -708,30 +631,6 @@ showResults() {
     board.appendChild(row);
   });
   overlay.appendChild(board);
-/* 
-  // add a block with control buttons
-  const controls = document.createElement('div');
-  controls.style.marginTop = '30px';
-
-
-  const restartBtn = document.createElement('button');
-  restartBtn.textContent = 'Restart';
-  restartBtn.onclick = () => {
-    this.socket.emit('resetGame', this.playerName);
-    overlay.remove();
-  };
-
-  const quitBtn = document.createElement('button');
-  quitBtn.textContent = 'Quit';
-  quitBtn.onclick = () => {
-    this.socket.emit('playerQuit', this.playerName);
-    overlay.remove();
-    setTimeout(() => window.location.reload(), 500);
-  };
-
-  controls.appendChild(restartBtn);
-  controls.appendChild(quitBtn);
-  overlay.appendChild(controls); */
 
   this.gameContainer.appendChild(overlay);
   

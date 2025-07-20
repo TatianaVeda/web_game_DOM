@@ -133,14 +133,24 @@ body {
   margin-top: 10px;
 }
 
-.game-controls button {
-  padding: 8px 16px;
-  font-size: 14px;
+.game-controls button,
+.game-controls select {
+  padding: 10px 20px;
+  font-size: 16px;
   border: none;
   border-radius: 5px;
-  cursor: pointer;
-  background: #333;
-  color: white;
+  border: none;
+  outline: none;
+  min-width: 70px;
+  min-height: 30px;
+}
+
+.game-controls select {
+  background: #fff;
+  color: #222;
+  border: 1px solid #bbb;
+  padding: 8px 12px;
+  min-width: 60px;
 }
 
 #startButton {

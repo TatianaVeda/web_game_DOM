@@ -162,30 +162,32 @@ class Game {
 });
 
     this.socket.on('gameStarted', () => {
-  this.gameRunning = true;
-  this.isPaused = false;
- 
-  window.SoundManager.playStart();
+      console.log('[gameStarted] before: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+      this.gameRunning = true;
+      this.isPaused = false;
+      window.SoundManager.playStart();
 
-  if (this.isPaused) {
-    this.togglePause();
-  }
-  const startButton = document.getElementById('startButton');
-  if (startButton) {
-    startButton.style.display = 'none';
-  }
-  //  Delete resultOverlay when new game starts
-  const resultsOverlay = document.getElementById('resultsOverlay');
-  if (resultsOverlay) resultsOverlay.remove();
-  // Change text of Pause/Continue button
-  const pauseBtn = document.getElementById('pauseButton');
-  if (pauseBtn) {
-    pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
-  }
-  //Show overlay "Game started by X" to all players
-  this.showPauseOverlay(`Game started by ${this.playerName}`, true, this.playerName, false);
-  this.updateHostControls();
-});
+      if (this.isPaused) {
+        this.togglePause();
+      }
+      const startButton = document.getElementById('startButton');
+      if (startButton) {
+        startButton.style.display = 'none';
+      }
+      //  Delete resultOverlay when new game starts
+      const resultsOverlay = document.getElementById('resultsOverlay');
+      if (resultsOverlay) resultsOverlay.remove();
+      // Change text of Pause/Continue button
+      const pauseBtn = document.getElementById('pauseButton');
+      if (pauseBtn) {
+        pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+      }
+      //Show overlay "Game started by X" to all players
+      this.showPauseOverlay(`Game started by ${this.playerName}`, true, this.playerName, false);
+      console.log('[gameStarted] after: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+      // Update host controls
+      this.updateHostControls();
+    });
 
 
     this.socket.on('timerUpdate', (timeLeft) => {
@@ -258,7 +260,6 @@ this.socket.on('gameOver', (data) => {
 
       this.gameRunning = false;
       window.SoundManager.playVictory();
-      //this.showPauseOverlay(`Game Over!\n Winner: ${data.winner ? data.winner.name : "No one :)"}`, true, data.winner ? data.winner.name : "No one");
       this.showResults(data); 
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
@@ -344,7 +345,7 @@ this.socket.on('gameOver', (data) => {
   createPlayerElement(player) {
     const element = document.createElement('div');
     element.className = 'player-ball';
-    const displayName = player.name + (player.isHost ? ' (Host)' : '');
+    const displayName = player.name + (player.isHost ? '👑(Host)' : '');
     element.innerHTML = `
     <img src="images/${player.icon}.svg" alt="${player.name}" width="100%" height="100%" />
     <span class="player-name">${displayName}</span>
@@ -420,22 +421,24 @@ this.socket.on('gameOver', (data) => {
   }
 
   updateHostControls() {
-  const startButton  = document.getElementById('startButton');
-  const pauseBtn     = document.getElementById('pauseButton');
-  const timerSelDiv  = document.getElementById('timerSelector');
+    const startButton  = document.getElementById('startButton');
+    const pauseBtn     = document.getElementById('pauseButton');
+    const timerSelDiv  = document.getElementById('timerSelector');
+    console.log('[updateHostControls] isHost:', this.isHost, 'gameRunning:', this.gameRunning);
 
-  if (this.isHost && !this.gameRunning) {
-    if (startButton)  startButton.style.display   = 'inline-block';
-    if (timerSelDiv)  timerSelDiv.style.display   = 'inline-block';
-  } else {
-    if (startButton)  startButton.style.display   = 'none';
-    if (timerSelDiv)  timerSelDiv.style.display   = 'none';
-  }
+    if (this.isHost && !this.gameRunning) {
+      if (startButton)  startButton.style.display   = 'inline-block';
+      if (timerSelDiv)  timerSelDiv.style.display   = 'inline-block';
+    } else {
+      if (startButton)  startButton.style.display   = 'none';
+      if (timerSelDiv)  timerSelDiv.style.display   = 'none';
+    }
 
-  if (pauseBtn) {
-    pauseBtn.disabled = !this.gameRunning;
+    if (pauseBtn) {
+      console.log('[updateHostControls] pauseBtn.disabled =', !this.gameRunning);
+      pauseBtn.disabled = !this.gameRunning;
+    }
   }
-}
 
   joinGame(playerName) {
     if (!playerName || playerName.trim() === '') {
@@ -523,7 +526,7 @@ this.socket.on('gameOver', (data) => {
         if (this.isPaused) {
           this.isPaused = false;
         }
-      }, 2500);
+      }, 1500);
     }
   }
 
@@ -645,9 +648,17 @@ showResults() {
     }
   `;
   document.head.appendChild(style);
+
+  // Disable start button during overlay
+  const startButton = document.getElementById('startButton');
+  if (startButton) startButton.disabled = true;
+
   setTimeout(() => {
     overlay.remove();
-  }, 10000); //10 seconds
+    // Enable start button after overlay disappears
+    if (startButton) startButton.disabled = false;
+  }, 10000); // 10 seconds (duration of overlay and victory music)
+  
 }
 
   setupJoinHandlers() {

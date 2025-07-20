@@ -87,6 +87,15 @@ function startNewGame(socket, playerName) {
   }
   return false;
 }
+function ensureHostExists() {
+  const playersArr = Array.from(gameState.players.values());
+  if (!playersArr.some(p => p.isHost)) {
+    if (playersArr.length > 0) {
+      playersArr[0].isHost = true;
+      io.emit('newHostAssigned', { playerId: playersArr[0].id, playerName: playersArr[0].name });
+    }
+  }
+}
 io.on('connection', (socket) => {
 
   
@@ -136,6 +145,8 @@ io.on('connection', (socket) => {
     }
 
     gameState.players.set(socket.id, player);
+
+    ensureHostExists(); // Make sure there is a host after entering the game
 
     const allPlayers = Array.from(gameState.players.values());
     socket.emit('currentPlayers', allPlayers);
@@ -195,6 +206,8 @@ socket.on('disconnect', () => {
 
   
   gameState.players.delete(socket.id);
+
+  ensureHostExists(); // Make sure there is a host after exiting the game
 
   // Check: if there is only one alive player, declare the winner and end the game
   const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
@@ -535,6 +548,7 @@ function resetGame() {
   
     player.coinCount = 0;
   });
+  ensureHostExists(); // Make sure there is a host after reset
 }
 
 gameLoop();

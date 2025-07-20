@@ -88,18 +88,17 @@ class Game {
     });
 
     this.socket.on('currentPlayers', (players) => {
+      this.clearAllPlayers(); // Очищаем всех старых игроков
       players.forEach(player => {
-        if (!this.players.has(player.id)) {
-          this.players.set(player.id, {
-            ...player,
-            element: this.createPlayerElement(player)
-          });
-          if (this.gameRunning) {
-            this.players.get(player.id).element.style.display = 'none';
-            this.players.get(player.id).alive = false;
-          }
-          this.updateScoreboard();
+        this.players.set(player.id, {
+          ...player,
+          element: this.createPlayerElement(player)
+        });
+        if (this.gameRunning) {
+          this.players.get(player.id).element.style.display = 'none';
+          this.players.get(player.id).alive = false;
         }
+        this.updateScoreboard();
       });
     });
 
@@ -709,6 +708,15 @@ showResults() {
       const hearts = Array(player.lives).fill('❤️').join(' ');
       this.livesIndicator.innerHTML = hearts;
     }
+  }
+
+  clearAllPlayers() {
+    this.players.forEach(player => {
+      if (player.element && player.element.parentNode) {
+        player.element.parentNode.removeChild(player.element);
+      }
+    });
+    this.players.clear();
   }
 }
 

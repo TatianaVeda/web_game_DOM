@@ -1,128 +1,160 @@
-// BonusManager handles the creation, synchronization, and collection of bonus items (shields and hearts) in the game
+
 export default class BonusManager {
   /**
    * @param {Object} game - The main game instance
    */
   constructor(game) {
-    this.game = game;                              // Reference to the main game object
-    this.container = game.gameContainer;           // DOM container for rendering bonuses
-    this.shields = new Map();                      // Map of shield bonus elements by ID
-    this.hearts = new Map();                       // Map of heart bonus elements by ID
-    this.setupSocket();                            // Initialize socket event listeners
-    this.injectCSS();                              // Inject necessary CSS for bonuses
+    this.game         = game;
+    this.container    = game.gameContainer;
+    this.shields      = new Map();   // id → DOM element
+    this.hearts       = new Map();   // id → DOM element
+    this.modelShields = [];          // shield data from server
+    this.modelHearts  = [];          // heart data from server
+
+    this.setupSocket();
+    this.injectCSS();
   }
 
-  /** 
-   * Sets up socket event handlers for receiving game updates and bonus collection events
+  /**
+   * Sets up socket event handlers
    */
   setupSocket() {
     const sock = this.game.socket;
 
-    // Update shields and hearts positions when game state changes
+    // On each gameState update, refresh the model and sync DOM elements
     sock.on('gameState', state => {
-      this.syncShields(state.shields);
-      this.syncHearts(state.hearts);
+      // 1) Update internal model arrays
+      this.modelShields = state.shields;
+      this.modelHearts  = state.hearts;
+
+      // 2) Create/delete DOM elements (but don't position them here)
+      this.syncShields(this.modelShields);
+      this.syncHearts(this.modelHearts);
     });
 
-    // Handle shield collection by any player
+    // When a shield is collected
     sock.on('shieldCollected', ({ bonusId, playerId }) => {
       const el = this.shields.get(bonusId);
       if (el) {
-        el.classList.add('collected');              // Trigger collect animation
-        setTimeout(() => el.remove(), 300);         // Remove element after animation
-        this.shields.delete(bonusId);               // Remove from internal map
+        el.classList.add('collected');
+        setTimeout(() => el.remove(), 300);
+        this.shields.delete(bonusId);
       }
-      window.SoundManager.playShield();             // Play shield sound effect
+      window.SoundManager.playShield();
 
-      // If the current player collected the shield, grant temporary immunity
+      // Grant immunity if collected by this client
       if (playerId === this.game.socketId) {
-        this.game.players.get(playerId).collisionImmunity = true;
-        setTimeout(() => {
-          this.game.players.get(playerId).collisionImmunity = false;
-        }, 15000);                                  // Immunity lasts 15 seconds
+        const p = this.game.players.get(playerId);
+        p.collisionImmunity = true;
+        setTimeout(() => { p.collisionImmunity = false; }, 15000);
       }
     });
 
-    // Handle heart collection by any player
+    // When a heart is collected
     sock.on('heartCollected', ({ bonusId, playerId }) => {
       const el = this.hearts.get(bonusId);
       if (el) {
-        el.classList.add('collected');              // Trigger collect animation
-        setTimeout(() => el.remove(), 300);         // Remove element after animation
-        this.hearts.delete(bonusId);                // Remove from internal map
+        el.classList.add('collected');
+        setTimeout(() => el.remove(), 300);
+        this.hearts.delete(bonusId);
       }
-      window.SoundManager.playHeart();              // Play heart sound effect
+      window.SoundManager.playHeart();
 
-      // If the current player collected the heart, increase life count (max 3)
+      // Increase life if collected by this client
       if (playerId === this.game.socketId) {
-        const player = this.game.players.get(playerId);
-        if (player.lives < 3) {
-          player.lives++;
-          this.game.updateLivesIndicator(player);   // Update UI to show new life count
+        const p = this.game.players.get(playerId);
+        if (p.lives < 3) {
+          p.lives++;
+          this.game.updateLivesIndicator(p);
         }
       }
     });
   }
 
   /**
-   * Synchronizes shield bonuses with the server state.
-   * Creates new shield elements or updates existing ones, and removes obsolete ones.
-   * 
-   * @param {Array} serverShields - Array of shield objects from the server
+   * Create or remove shield elements based on the model
+   * (does NOT update their position)
    */
   syncShields(serverShields) {
     const ids = new Set(serverShields.map(b => b.id));
-    // Remove any shields that are no longer present on the server
+
+    // Remove obsolete shields
     this.shields.forEach((el, id) => {
-      if (!ids.has(id)) { el.remove(); this.shields.delete(id); }
+      if (!ids.has(id)) {
+        el.remove();
+        this.shields.delete(id);
+      }
     });
-    // Create or update shield elements
+
+    // Add new shields
     serverShields.forEach(b => {
       if (!this.shields.has(b.id)) {
         const el = document.createElement('div');
-        el.id = b.id;
+        el.id        = b.id;
         el.className = 'bonus shield';
-        el.style.width = el.style.height = `${b.size}px`;
-        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        el.style.width  = el.style.height = `${b.size}px`;
+        // Position will be set later in renderShields()
         this.container.appendChild(el);
         this.shields.set(b.id, el);
-      } else {
-        this.shields.get(b.id).style.transform = `translate(${b.x}px, ${b.y}px)`;
       }
     });
   }
 
   /**
-   * Synchronizes heart bonuses with the server state.
-   * Creates new heart elements or updates existing ones, and removes obsolete ones.
-   * 
-   * @param {Array} serverHearts - Array of heart objects from the server
+   * Create or remove heart elements based on the model
+   * (does NOT update their position)
    */
   syncHearts(serverHearts) {
     const ids = new Set(serverHearts.map(b => b.id));
-    // Remove any hearts that are no longer present on the server
+
+    // Remove obsolete hearts
     this.hearts.forEach((el, id) => {
-      if (!ids.has(id)) { el.remove(); this.hearts.delete(id); }
+      if (!ids.has(id)) {
+        el.remove();
+        this.hearts.delete(id);
+      }
     });
-    // Create or update heart elements
+
+    // Add new hearts
     serverHearts.forEach(b => {
       if (!this.hearts.has(b.id)) {
         const el = document.createElement('div');
-        el.id = b.id;
+        el.id        = b.id;
         el.className = 'bonus heart';
-        el.style.width = el.style.height = `${b.size}px`;
-        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        el.style.width  = el.style.height = `${b.size}px`;
+        // Position will be set later in renderHearts()
         this.container.appendChild(el);
         this.hearts.set(b.id, el);
-      } else {
-        this.hearts.get(b.id).style.transform = `translate(${b.x}px, ${b.y}px)`;
       }
     });
   }
 
   /**
-   * Injects CSS styles for bonus elements directly into the document head.
-   * Defines basic positioning, background images, and collect animation.
+   * Called from the game's RAF loop to update shield positions
+   */
+  renderShields() {
+    this.modelShields.forEach(b => {
+      const el = this.shields.get(b.id);
+      if (el) {
+        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+      }
+    });
+  }
+
+  /**
+   * Called from the game's RAF loop to update heart positions
+   */
+  renderHearts() {
+    this.modelHearts.forEach(b => {
+      const el = this.hearts.get(b.id);
+      if (el) {
+        el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+      }
+    });
+  }
+
+  /**
+   * Inject CSS styles for bonus elements
    */
   injectCSS() {
     const css = `
@@ -149,7 +181,7 @@ export default class BonusManager {
   }
 }
 
-// Initialize BonusManager when the DOM is ready and the global game object exists
+// Initialize when Game is ready
 document.addEventListener('DOMContentLoaded', () => {
   if (window.game) {
     window.bonusManager = new BonusManager(window.game);

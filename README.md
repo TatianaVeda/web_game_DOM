@@ -1,8 +1,8 @@
-# web-game "Dodge Trunks"🚤🚤🚤
+# web-game "Dodge Trunks" 🪵🚤🪙🚤❤️🚤
 
 ## Overview
 
-"Dodge Trunks" is as simple multi-player only game. Rules are simple: with you little rowing boat, you must dodge the trunks floating on the river. Each player starts the game with three lives and if they get hit by obstacles they lose a life, if you run out of them you are out! After a collision, you are invincible for 5 seconds.
+"Dodge Trunks" is as simple multi-player only game. Rules are simple: with you little rowing boat, you must dodge the trunks floating on the river. You can collect coins during the game, and the number of coins is shown in real time on the leaderboard. The winner is determined by the highest coin count. Each player starts the game with three lives and if they get hit by obstacles they lose a life, if you run out of them you are out! Gather coins to increase your score and climb the leaderboard.
 
 ## Run the game
 1. Install dependencies
@@ -21,7 +21,7 @@ The game can be accessed from http://localhost:3000
 
 ## Opening the game for multiplayer
 
-For making the game "multiplayer", you can use for example 'ngrok' **or Cloudflare Tunnel (cloudflared)**.
+For making the game "multiplayer", you can use for example 'ngrok' **or Cloudflare Tunnel (cloudflared)**. Simply split your terminal window and run the tunnel tool (ngrok or cloudflared) in parallel with your game server, as described below, to obtain a public URL.
 
 ### Option 1: ngrok
 - Navigate to https://ngrok.com
@@ -56,49 +56,58 @@ That will give you an URL of the type: 'https://************.ngrok-free.app'
     ```
 - After a few seconds, you will see a public URL like:
     ```
-    https://your-tunnel-id.trycloudflare.com
+    https://your-tunnel-id.trycloudflare.com (eg. https://identical-thailand-choir-architecture.trycloudflare.com)
     ```
 - Share this URL with your friends so they can join your game from anywhere!
 
 ## Play the game
 
-Fill your name in the dedicated field. Choose you boat color. First player to join will be the host of the game. Host can lauch the game when at least two players are in.
+Fill your name in the dedicated field. Choose you boat color. First player to join will be the host of the game. Host can lauch the game when at least two players are in. 
 
 Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` arrow keys.
 
-`Esc` opens menu, from where players can restart the game or give up.
+`Esc` also opens menu, from where players can restart the game or give up.
 
-## New Features
+## Game Rules
 
-- **Collectible Coins:**
-  The game features collectible coins 🪙. Each player can collect coins during the game, and the number of coins is shown in real time on the leaderboard. The winner is determined by the highest coin count (or depending on lives).
+- **Goal:**  
+  Dodge the floating trunks **🪵** and collect as many coins **🪙** as possible! The player with the most coins at the end wins. 
 
-- **Sound Effects:**
-  The game includes sound effects for game start, pause, player hit, collecting coins and victory🏆. Make sure to have your speakers on for the best experience!
+- **Obstacles (Trunks 🪵):**  
+  Floating trunks **🪵** are the main danger. If your boat collides with a trunk, you lose one life **❤️** and become temporarily invincible.
 
-- **Pause Menu:**
-  The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game at any time. When a player pauses, restarts, or quits, their name is displayed to players.
+- **Lives ❤️:**  
+  Each player starts with **3 lives** (❤️❤️❤️). Colliding with a trunk **🪵** or obstacle costs one life. If you lose all your lives, you are eliminated from the round.
 
-- **Competitive Interactivity:**
- The game is competitive: players race to collect coins, avoid obstacles, and survive longer than their opponents. All actions (movement, collecting coins, pausing, restarting, quitting) are synchronized in real time for all participants. The winner is determined by skill, speed, and strategy, ensuring a fair and engaging multiplayer experience.
+- **Bonuses:**  
+  - **Shield 🛡️:** Grants 15 seconds of immunity to collisions.
+  - **Heart ❤️:** Pick up hearts to restore lost lives (up to 3).
+  - **Coin 🪙:** Increase your score and leaderboard position.
 
-- **Leaderboard:**
-  The game features a leaderboard that displays the top players based on coin count. The leaderboard is updated in real time as players collect coins.
+- **Collision Immunity 🛡️:**  
+  After each collision with a trunk **🪵**, your boat becomes invincible for **5 seconds** (visual effect).  
+  You can also gain **15 seconds of immunity** by collecting a **shield bonus** 🛡️.
 
-- **Overlay Windows:**
-  All important game events (pause, restart, player quit/disconnect, game over) are shown to all players via overlay windows.
+- **Host 👑:**  
+  The first player to join is the host and can start or restart the game. If the host leaves, a new host is assigned automatically. **The host can choose the duration of the round before starting the game.**
 
-- **Keyboard Controls:**
-  Control your boat with the arrow keys. Keyboard input is smooth and responsive.
+- **Pause & Menu:**  
+  Press `Esc` or the **Pause** button to open the menu. You can pause, restart, or quit the game. The name of the player who initiates these actions is shown to all.
 
-- **Game Duration:**
-  Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted.
+## Features
 
-- **Visuals and Performance:**
-  The game uses only DOM elements (no canvas), with smooth animations and a visually pleasing interface. Designed to run at 60 FPS.
-
-- **Multiplayer:**
-  Supports 2-4 players, works in modern browsers, and can be played from anywhere using public tunnels (ngrok, cloudflared).
+-🌐 **Real-Time Synchronization:** Floating trunks move across the river, and all players must dodge them in real time. All players see each other's positions, actions, and scores.
+- 🚤 **Playable Characters:** Each player controls their own boat, visible to all participants. Each player selects a unique name before joining.
+- 👥 **Equal Opportunity:** All boats have identical abilities and movement speed; every player has an equal chance to win.
+- 🧑‍🤝‍🧑 **Multiplayer (2-4 players):** Supports 2, 3, or 4 players per session. Each player can join from their own computer/browser via a provided URL or IP address.  
+- 🎵 **Sound Effects:** The game includes sound effects for game start, pause, player hit, collecting coins and victory🏆. Make sure to have your speakers on for the best experience!
+- ⏳ **Game Duration:** Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted. The host can choose the duration of the round before starting the game. 
+- 🏆 **Leaderboard:** Real-time leaderboard shows players' coin counts.
+- 🚫 **No Canvas:** The game uses only DOM elements for rendering and animation. Designed to run at 60 FPS.
+- ⏸️ **Pause Menu:** The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game. The initiator's name is shown to all.
+- 🪄 **Overlay Windows:** All important events (pause, restart, player quit/disconnect, game over) are shown via overlays.
+- 🎮 **Keyboard Controls:** Control your boat with the arrow keys. Keyboard input is smooth and responsive.
+- ✨ **Extra Features:** Power-ups (shields, hearts), sound effects, real-time overlays, and a competitive, enjoyable gameplay experience: the winner is determined by skill, speed, and strategy.
 
 ---
 ## Team Members

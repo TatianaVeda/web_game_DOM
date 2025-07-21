@@ -177,9 +177,12 @@ io.on('connection', (socket) => {
     const player = gameState.players.get(socket.id);
     if (player && player.isHost) {
       resetGame();
-      if (startNewGame(socket, playerName)) {
-        io.emit('resetGame', playerName);
-      }
+      io.emit('resetGame', playerName); // 1. reset state for all
+      setTimeout(() => {
+        if (startNewGame(socket, playerName)) {
+          io.emit('gameStarted', gameState); // 2. start game for all
+        }
+      }, 100); // short delay to let clients process resetGame
     } else {
       socket.emit('notHost', { message: 'Only the host can restart the game!' });
     }

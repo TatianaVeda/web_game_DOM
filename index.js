@@ -179,7 +179,8 @@ io.on('connection', (socket) => {
       timeLimit: gameState.timeLimit
     });
 
-      socket.emit('chatHistory', chatHistory);
+      
+    
 
     socket.emit('playerJoined', player);
   });

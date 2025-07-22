@@ -68,13 +68,13 @@ class Game {
     this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
 
-
+if (!this.isPaused) {
 
     this.updateFloatingTrunk(delta);
     this.coinManager.renderCoins(delta);
     this.bonusManager.renderShields(delta);
     this.bonusManager.renderHearts(delta);
-
+}
 
     this.updateScoreboard();
   }

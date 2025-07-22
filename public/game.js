@@ -39,7 +39,7 @@ class Game {
     this.bonusManager = new BonusManager(this);
   }
 
-  renderScene() {
+  renderScene(delta) {
 
     this.players.forEach(player => {
 
@@ -64,27 +64,12 @@ class Game {
     this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
 
-    this.floatingTrunk.forEach(obj => {
-      let el = document.getElementById(obj.id);
-      if (!el) {
-
-        el = document.createElement('div');
-        el.id = obj.id;
-        el.className = 'floating-trunk';
-        el.innerHTML = '<img src="images/trunk-wood.svg"  width="100%" height="100%"/>';
-        this.gameContainer.appendChild(el);
-      }
-
-      el.style.width = `${obj.size}px`;
-      el.style.height = `${obj.size}px`;
-
-      el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
-    });
 
 
-    this.coinManager.renderCoins();
-    this.bonusManager.renderShields();
-    this.bonusManager.renderHearts();
+    this.updateFloatingTrunk(delta);
+    this.coinManager.renderCoins(delta);
+    this.bonusManager.renderShields(delta);
+    this.bonusManager.renderHearts(delta);
 
 
     this.updateScoreboard();
@@ -481,8 +466,14 @@ class Game {
   }
 
   gameLoop(timestamp) {
+    if (!this.lastRender) this.lastRender = timestamp;
+    const delta = timestamp - this.lastRender;
+    this.lastRender = timestamp;
+
     this.handleInput(timestamp);
-    this.renderScene();
+    this.renderScene(delta);
+
+
     this.loopId = requestAnimationFrame(this.gameLoop.bind(this));
   }
 
@@ -755,34 +746,36 @@ class Game {
     });
   }
 
-  updateFloatingTrunk() {
-    for (let i = this.floatingTrunk.length - 1; i >= 0; i--) {
-      const object = this.floatingTrunk[i];
 
-      if (object.gathered || object.y === 810) {
-        const element = document.getElementById(object.id);
-        if (element) {
-          element.remove();
-        }
+  updateFloatingTrunk(delta) {
+    for (let i = this.floatingTrunk.length - 1; i >= 0; i--) {
+      const obj = this.floatingTrunk[i];
+
+      obj.y += obj.speed * (delta / 1000);
+
+      if (obj.gathered || obj.y > this.gameContainer.clientHeight + obj.size) {
+        const el = document.getElementById(obj.id);
+        if (el) el.remove();
         this.floatingTrunk.splice(i, 1);
         continue;
       }
 
-      let element = document.getElementById(object.id);
-      if (!element) {
-        element = document.createElement('div');
-        element.id = object.id;
-        element.className = 'floating-trunk';
-        element.innerHTML = `<img src="images/trunk-wood.svg" width="100%" height="100%"/>`;
-        this.gameContainer.appendChild(element);
+      let el = document.getElementById(obj.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = obj.id;
+        el.className = 'floating-trunk';
+        el.style.position = 'absolute';
+        el.innerHTML = `<img src="images/trunk-wood.svg" width="100%" height="100%"/>`;
+        this.gameContainer.appendChild(el);
       }
 
-      element.style.width = `${object.size}px`;
-      element.style.height = `${object.size}px`;
-
-      element.style.transform = `translate(${object.x}px, ${object.y}px)`;
+      el.style.width = `${obj.size}px`;
+      el.style.height = `${obj.size}px`;
+      el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
     }
   }
+
 
   updateLivesIndicator(player) {
     if (player.id === this.socketId) {

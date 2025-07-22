@@ -4,12 +4,12 @@ export default class BonusManager {
    * @param {Object} game - The main game instance
    */
   constructor(game) {
-    this.game         = game;
-    this.container    = game.gameContainer;
-    this.shields      = new Map();   // id → DOM element
-    this.hearts       = new Map();   // id → DOM element
+    this.game = game;
+    this.container = game.gameContainer;
+    this.shields = new Map();   // id → DOM element
+    this.hearts = new Map();   // id → DOM element
     this.modelShields = [];          // shield data from server
-    this.modelHearts  = [];          // heart data from server
+    this.modelHearts = [];          // heart data from server
 
     this.setupSocket();
     this.injectCSS();
@@ -25,7 +25,7 @@ export default class BonusManager {
     sock.on('gameState', state => {
       // 1) Update internal model arrays
       this.modelShields = state.shields;
-      this.modelHearts  = state.hearts;
+      this.modelHearts = state.hearts;
 
       // 2) Create/delete DOM elements (but don't position them here)
       this.syncShields(this.modelShields);
@@ -90,9 +90,9 @@ export default class BonusManager {
     serverShields.forEach(b => {
       if (!this.shields.has(b.id)) {
         const el = document.createElement('div');
-        el.id        = b.id;
+        el.id = b.id;
         el.className = 'bonus shield';
-        el.style.width  = el.style.height = `${b.size}px`;
+        el.style.width = el.style.height = `${b.size}px`;
         // Position will be set later in renderShields()
         this.container.appendChild(el);
         this.shields.set(b.id, el);
@@ -119,9 +119,9 @@ export default class BonusManager {
     serverHearts.forEach(b => {
       if (!this.hearts.has(b.id)) {
         const el = document.createElement('div');
-        el.id        = b.id;
+        el.id = b.id;
         el.className = 'bonus heart';
-        el.style.width  = el.style.height = `${b.size}px`;
+        el.style.width = el.style.height = `${b.size}px`;
         // Position will be set later in renderHearts()
         this.container.appendChild(el);
         this.hearts.set(b.id, el);
@@ -132,8 +132,9 @@ export default class BonusManager {
   /**
    * Called from the game's RAF loop to update shield positions
    */
-  renderShields() {
+  renderShields(delta) {
     this.modelShields.forEach(b => {
+      b.y += b.speed * (delta / 1000);
       const el = this.shields.get(b.id);
       if (el) {
         el.style.transform = `translate(${b.x}px, ${b.y}px)`;
@@ -144,8 +145,9 @@ export default class BonusManager {
   /**
    * Called from the game's RAF loop to update heart positions
    */
-  renderHearts() {
+  renderHearts(delta) {
     this.modelHearts.forEach(b => {
+      b.y += b.speed * (delta / 1000);
       const el = this.hearts.get(b.id);
       if (el) {
         el.style.transform = `translate(${b.x}px, ${b.y}px)`;

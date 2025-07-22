@@ -105,16 +105,16 @@ io.on('connection', (socket) => {
 
   socket.on('joinGame', (data) => {
     // Check if game is already running
-    if (gameState.isGameRunning) {
-      socket.emit('joinError', 'Game is already in progress! Please wait for the next round.');
-      return;
-    }
+    // if (gameState.isGameRunning) {
+    //   socket.emit('joinError', 'Game is already in progress! Please wait for the next round.');
+    //   return;
+    // }
 
     if (gameState.players.size >= 4) {
+
       socket.emit('gameFull');
       return;
     }
-
     const nameTaken = Array.from(gameState.players.values())
       .some(p => p.name === data.name);
     if (nameTaken) {
@@ -144,12 +144,17 @@ io.on('connection', (socket) => {
     }
     const player = new Player(x, y, socket.id, data.name, data.icon);
 
+    player.lives = 3;
+    player.collisionImmunity = false;
+    player.coinCount = 0;
+    player.alive = true;
+
     // just set first player host and make sure set dead if game is running
     if (gameState.players.size === 0) {
       player.isHost = true;
     }
     if (gameState.isGameRunning) {
-      player.alive = false;
+      player.alive = true;
     }
 
     gameState.players.set(socket.id, player);
@@ -159,6 +164,16 @@ io.on('connection', (socket) => {
     const allPlayers = Array.from(gameState.players.values());
     socket.emit('currentPlayers', allPlayers);
     socket.broadcast.emit('currentPlayers', allPlayers);
+
+    socket.emit('gameState', {
+      floatingTrunk: gameState.floatingTrunk,
+      coins: gameState.coins,
+      shields: gameState.shields,
+      hearts: gameState.hearts,
+      players: allPlayers,
+      timer: Math.floor(gameState.timer / 1000),
+      timeLimit: gameState.timeLimit
+    });
 
     socket.emit('playerJoined', player);
   });

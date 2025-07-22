@@ -93,6 +93,7 @@ class Game {
   setupSocketListeners() {
     this.players = new Map();
     this.socket.on('connect', () => {
+      
       console.log('Connected to server');
     });
 
@@ -101,37 +102,30 @@ class Game {
       window.location.reload();
     });
 
-    this.socket.on('playerJoined', (player) => {
-       console.log("player joined:", player);
-      this.socketId = player.id;
-      if (!this.players.has(player.id)) {
-        this.players.set(player.id, {
-          ...player,
-          element: this.createPlayerElement(player)
-          
-        });
-      }
+  this.socket.on('playerJoined', (player) => {
+  console.log("player joined:", player);
+
+  this.socketId = player.id;
+
+  if (!this.players.has(player.id)) {
+    this.players.set(player.id, {
+      ...player,
+      element: this.createPlayerElement(player)
+    });
+  }
+
   this.isHost = player.isHost;
   this.updateHostControls();
-  this.updateScoreboard();
 
   if (player.id === this.socketId) {
     document.getElementById('joinScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'block';
-    this.startGameLoop(); // start game loop only after entering the game
+    this.startGameLoop();
   }
 
+  this.updateScoreboard();
+});
 
-      this.isHost = player.isHost;
-
-      if (this.gameRunning) {
-        this.players.get(player.id).element.style.display = 'none';
-        this.players.get(player.id).alive = false;
-      }
-
-      this.updateHostControls();
-      this.updateScoreboard();
-    });
 
 this.socket.on('playerMoved', (player) => {
   const existingPlayer = this.players.get(player.id);
@@ -149,20 +143,36 @@ const oldLives = existingPlayer.lives;
 });
 
 
-    this.socket.on('currentPlayers', (players) => {
-      this.clearAllPlayers(); 
-      players.forEach(player => {
-        this.players.set(player.id, {
-          ...player,
-          element: this.createPlayerElement(player)
-        });
-        if (this.gameRunning) {
-          this.players.get(player.id).element.style.display = 'none';
-          this.players.get(player.id).alive = false;
-        }
-        this.updateScoreboard();
-      });
-    });
+   this.socket.on('currentPlayers', (players) => {
+  const incomingIds = new Set(players.map(p => p.id));
+
+  players.forEach(sp => {
+    if (this.players.has(sp.id)) {
+      const existing = this.players.get(sp.id);
+      existing.x = sp.x;
+      existing.y = sp.y;
+      existing.lives = sp.lives;
+      existing.coinCount = sp.coinCount;
+      existing.collisionImmunity = sp.collisionImmunity;
+    } else {
+      const newPlayer = {
+        ...sp,
+        element: this.createPlayerElement(sp)
+      };
+      this.players.set(sp.id, newPlayer);
+    }
+  });
+
+  for (const [id, p] of this.players) {
+    if (!incomingIds.has(id)) {
+      p.element.remove();
+      this.players.delete(id);
+    }
+  }
+
+  this.updateScoreboard();
+});
+
 
     this.socket.on('newHostAssigned', ({ playerId, playerName }) => {
       console.log(`New host assigned: ${playerName} (${playerId})`);

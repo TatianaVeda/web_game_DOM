@@ -73,7 +73,9 @@ function startNewGame(socket, playerName) {
   if (!gameState.isGameRunning) {
     gameState.isGameRunning = true;
     gameState.startTime = Date.now();
-    io.emit('gameStarted', gameState);
+    const host = Array.from(gameState.players.values()).find(p => p.isHost);
+    io.emit('gameStarted', { hostName: host ? host.name : 'Host' });
+
     // add one floatingTrunk at the start
     gameState.floatingTrunk.push({
       id: generateObjectId(),

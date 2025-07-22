@@ -237,33 +237,34 @@ this.socket.on('gameState', (state) => {
   errorDiv.style.color = 'red';
 });
 
-    this.socket.on('gameStarted', () => {
-      console.log('[gameStarted] before: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
-      this.gameRunning = true;
-      this.isPaused = false;
-      window.SoundManager.playStart();
 
-      if (this.isPaused) {
-        this.togglePause();
-      }
-      const startButton = document.getElementById('startButton');
-      if (startButton) {
-        startButton.style.display = 'none';
-      }
-      //  Delete resultOverlay when new game starts
-      const resultsOverlay = document.getElementById('resultsOverlay');
-      if (resultsOverlay) resultsOverlay.remove();
-      // Change text of Pause/Continue button
-      const pauseBtn = document.getElementById('pauseButton');
-      if (pauseBtn) {
-        pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
-      }
-      //Show overlay "Game started by X" to all players
-      this.showPauseOverlay(`Game started by ${this.playerName}`, true, this.playerName, false);
-      console.log('[gameStarted] after: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
-      // Update host controls
-      this.updateHostControls();
-    });
+this.socket.on('gameStarted', ({ hostName }) => {
+  console.log('[gameStarted] before: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+  this.gameRunning = true;
+  this.isPaused = false;
+  window.SoundManager.playStart();
+
+  if (this.isPaused) {
+    this.togglePause();
+  }
+  const startButton = document.getElementById('startButton');
+  if (startButton) {
+    startButton.style.display = 'none';
+  }
+  // Delete resultOverlay when new game starts
+  const resultsOverlay = document.getElementById('resultsOverlay');
+  if (resultsOverlay) resultsOverlay.remove();
+  // Change text of Pause/Continue button
+  const pauseBtn = document.getElementById('pauseButton');
+  if (pauseBtn) {
+    pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+  }
+  //Show overlay with only host's name
+  this.showPauseOverlay(`Game started by ${hostName}`, true, hostName, false);
+  console.log('[gameStarted] after: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+  // Update host controls
+  this.updateHostControls();
+});
 
 
     this.socket.on('timerUpdate', (timeLeft) => {
@@ -557,6 +558,7 @@ this.socket.on('gameOver', (data) => {
         </div>
       `;
     } else {
+      // Only show host's name in the overlay
       overlay.innerHTML = `
         <div>
           <h2>${message}</h2>
@@ -583,7 +585,7 @@ this.socket.on('gameOver', (data) => {
       document.getElementById('quitBtn').onclick = () => {
         this.hidePauseOverlay();
         this.socket.emit('playerQuit', this.playerName);
-        setTimeout(() => window.location.reload(), 500);
+        setTimeout(() => window.location.reload(), 15000);
       };
     }
 

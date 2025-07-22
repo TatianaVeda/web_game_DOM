@@ -1,6 +1,7 @@
 import CoinManager from './coinManager.js';
 import BonusManager from './bonusManager.js';
 import ChatPlugin from './chatPlugin.js';
+import GameModePlugin from './gameModePlugin.js';
 
 
 class Game {
@@ -8,6 +9,7 @@ class Game {
     // Core game properties
     this.socket = io();
      this.chatPlugin = new ChatPlugin(this);
+     this.modePlugin   = new GameModePlugin(this);
     this.gameContainer = document.getElementById('gameContainer');
     this.scoreBoard = document.getElementById('scoreBoard');
     this.timerDisplay = document.getElementById('timer');

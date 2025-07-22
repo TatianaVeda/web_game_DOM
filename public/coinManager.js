@@ -51,9 +51,10 @@ class CoinManager {
         el.id = c.id;
         el.className = 'coin';
         el.style.width  = el.style.height = `${c.size}px`;
-    
-        this.container.appendChild(el);
-        this.coins.set(c.id, el);
+
+          el.style.transform = `translate(${c.x}px, ${c.y - c.size}px)`;
+          this.container.appendChild(el);
+          this.coins.set(c.id, el);
       }
     });
   }
@@ -68,36 +69,48 @@ class CoinManager {
   }
 
   updateRanking() {
-    const arr = Array.from(this.game.players.values())
-      .map(p => ({ name: p.name, count: this.playerCounts[p.id] || 0 }));
-    arr.sort((a, b) => b.count - a.count);
+  const arr = Array.from(this.game.players.values()).map(p => ({
+    name: p.name,                       
+    count: this.playerCounts[p.id] || 0, 
+    lives: p.lives                       
+  }));
 
-    const board = document.getElementById('leaderboard');
-    board.innerHTML = arr.map((p, i) =>
-      `<div class="player-score">
-         ${i + 1}. ${p.name}: ${p.count} 💰
-       </div>`
-    ).join('');
-  }
+  arr.sort((a, b) => b.count - a.count);
+
+  const board = document.getElementById('leaderboard');
+
+  board.innerHTML = arr.map((p, i) => {
+    const coinsHtml = `${p.count} 💰`;
+    const livesHtml = '❤️'.repeat(p.lives);
+
+    return `
+      <div class="player-score">
+        ${i + 1}. ${p.name}: ${coinsHtml}, Lives: ${livesHtml}
+      </div>
+    `;
+  }).join(''); 
+}
 
   injectCSS() {
     const css = `
-      .coin {
-        position: absolute;
-        background: url('/images/coin.png') no-repeat center / contain;
-        will-change: transform;
-      }
-      .coin.collected {
-        animation: pop 0.3s forwards;
-      }
-      @keyframes pop {
-        to { transform: scale(1.5); opacity: 0; }
-      }
-    `;
-    const style = document.createElement('style');
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
+    .coin {
+      position: absolute;
+      background: url('/images/coin.png') no-repeat center / contain;
+      will-change: transform;
+      /* ПЛАВНОЕ ДВИЖЕНИЕ */
+      transition: transform 16ms linear;
+    }
+    .coin.collected {
+      animation: pop 0.3s forwards;
+    }
+    @keyframes pop {
+      to { transform: scale(1.5); opacity: 0; }
+    }
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+}
 }
 
 export default CoinManager;

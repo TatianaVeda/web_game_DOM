@@ -161,6 +161,7 @@ export default class BonusManager {
       .bonus {
         position: absolute;
         will-change: transform;
+        transition: transform 16ms linear;
       }
       .bonus.shield {
         background: url('/images/shield.png') center/contain no-repeat;

@@ -136,7 +136,7 @@ class Game {
 this.socket.on('playerMoved', (player) => {
   const existingPlayer = this.players.get(player.id);
   if (!existingPlayer) return;
-const oldLives = existing.lives;
+const oldLives = existingPlayer.lives;
   existingPlayer.x = player.x;
   existingPlayer.y = player.y;
   existingPlayer.collisionImmunity = player.collisionImmunity;

@@ -20,7 +20,7 @@ class Player {
     this.objectMulti = 1;
     this.lives = 3;
     this.collisionImmunity = false;
-    this.coinCount = 0; 
+    this.coinCount = 0;
   }
 
   move(x, y) {
@@ -39,13 +39,13 @@ const GAMEWINDOW_SIZE = { x: 1200, y: 800 };
 const gameState = {
   players: new Map(),
   floatingTrunk: [],
-  coins:         [],  
-   shields: [],      
-  hearts: [],       
-  lastShieldAt: 0,  
+  coins: [],
+  shields: [],
+  hearts: [],
+  lastShieldAt: 0,
   lastHeartAt: 0,
   isGameRunning: false,
-  isPaused:      false,
+  isPaused: false,
   timer: 0,
   timeLimit: 0,
   lastUpdate: Date.now(),
@@ -64,7 +64,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 function generateObjectId() {
   return `object-${Date.now()}-${ObjectCounter++}`;
-} 
+}
 function startNewGame(socket, playerName) {
   if (gameState.players.size <= 1) {
     socket.emit('notEnoughPlayers', { message: 'Not enough players to start the game!' });
@@ -100,21 +100,27 @@ function ensureHostExists() {
 }
 io.on('connection', (socket) => {
 
-  
+
   console.log('A user connected:', socket.id);
 
   socket.on('joinGame', (data) => {
+    // Check if game is already running
+    if (gameState.isGameRunning) {
+      socket.emit('joinError', 'Game is already in progress! Please wait for the next round.');
+      return;
+    }
+
     if (gameState.players.size >= 4) {
-      
       socket.emit('gameFull');
-     return;
-   }
-  const nameTaken = Array.from(gameState.players.values())
-    .some(p => p.name === data.name);
-  if (nameTaken) {
-    socket.emit('joinError', 'Name is already taken. Please choose another.');
-    return;
-  }
+      return;
+    }
+
+    const nameTaken = Array.from(gameState.players.values())
+      .some(p => p.name === data.name);
+    if (nameTaken) {
+      socket.emit('joinError', 'Name is already taken. Please choose another.');
+      return;
+    }
     console.log('A user joined game:', data.name);
 
     // Check if name is already taken
@@ -173,7 +179,7 @@ io.on('connection', (socket) => {
       io.emit('playerMoved', player);
     }
   });
- 
+
   // Restart event: broadcast who restarted
   socket.on('resetGame', (playerName) => {
     const player = gameState.players.get(socket.id);
@@ -188,7 +194,7 @@ io.on('connection', (socket) => {
     } else {
       socket.emit('notHost', { message: 'Only the host can restart the game!' });
     }
-});
+  });
 
   // Quit event: broadcast who quit
   socket.on('playerQuit', (playerName) => {
@@ -196,27 +202,27 @@ io.on('connection', (socket) => {
     io.emit('playerQuit', playerName);
   });
 
-socket.on('disconnect', () => {
-  console.log('A user disconnected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('A user disconnected:', socket.id);
 
-  const player = gameState.players.get(socket.id);
-  if (!player) {
+    const player = gameState.players.get(socket.id);
+    if (!player) {
       console.warn(`Player with ID ${socket.id} not found in gameState.players`);
       return;
-  }
+    }
 
-  const wasHost = player.isHost;
-  console.log('Disconnected player:', player);
-  console.log('Was host:', wasHost);
+    const wasHost = player.isHost;
+    console.log('Disconnected player:', player);
+    console.log('Was host:', wasHost);
 
-  
-  gameState.players.delete(socket.id);
 
-  ensureHostExists(); // Make sure there is a host after exiting the game
+    gameState.players.delete(socket.id);
 
-  // Check: if there is only one alive player, declare the winner and end the game
-  const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
-  if (gameState.isGameRunning && alivePlayers.length === 1) {
+    ensureHostExists(); // Make sure there is a host after exiting the game
+
+    // Check: if there is only one alive player, declare the winner and end the game
+    const alivePlayers = Array.from(gameState.players.values()).filter(p => p.alive);
+    if (gameState.isGameRunning && alivePlayers.length === 1) {
       gameState.isGameRunning = false;
       const winner = alivePlayers[0];
       if (winner) {
@@ -225,61 +231,61 @@ socket.on('disconnect', () => {
       io.emit('gameOver', { winner });
       resetGame();
       return;
-  }
+    }
 
-  io.emit('playerDisconnected', socket.id);
+    io.emit('playerDisconnected', socket.id);
 
-  if (wasHost && gameState.players.size > 0) {
+    if (wasHost && gameState.players.size > 0) {
       const newHost = gameState.players.values().next().value;
       if (newHost) {
-          newHost.isHost = true;
-          console.log(`New host assigned: ${newHost.name || newHost.id}`);
-          io.emit('newHostAssigned', { playerId: newHost.id, playerName: newHost.name || 'Unknown' });
+        newHost.isHost = true;
+        console.log(`New host assigned: ${newHost.name || newHost.id}`);
+        io.emit('newHostAssigned', { playerId: newHost.id, playerName: newHost.name || 'Unknown' });
       }
-  }
+    }
 
-  // If none of the players are alive, game is resetted
-  const noPlayersAlive = Array.from(gameState.players.values()).every(player => !player.alive);
-  if (noPlayersAlive) {
+    // If none of the players are alive, game is resetted
+    const noPlayersAlive = Array.from(gameState.players.values()).every(player => !player.alive);
+    if (noPlayersAlive) {
       console.log('No players are alive. Resetting the game...');
       io.emit('resetGame', 'the system.')
       resetGame();
-      return; 
-  }
+      return;
+    }
 
-  // pauses the game automatically on disconnect, also unpauses it after 4 seconds
-  if (!gameState.isPaused) {
+    // pauses the game automatically on disconnect, also unpauses it after 4 seconds
+    if (!gameState.isPaused) {
       gameState.isPaused = true;
       setTimeout(() => {
-          if (gameState.isPaused) {
-              gameState.isPaused = false;
-              console.log('Game unpaused automatically after disconnect pause timeout');
-          }
+        if (gameState.isPaused) {
+          gameState.isPaused = false;
+          console.log('Game unpaused automatically after disconnect pause timeout');
+        }
       }, 4000);
-  }
+    }
 
-  
 
-  // If no players are left, reset the game
-  if (gameState.players.size === 0) {
+
+    // If no players are left, reset the game
+    if (gameState.players.size === 0) {
       resetGame();
       // probably needed
       io.emit('resetGame', 'Everyone');
-  }
-});
+    }
+  });
 
   socket.on('startGame', ({ duration }) => {
-  if (startNewGame(socket)) {
-    gameState.timeLimit = duration;
-  }
-});
+    if (startNewGame(socket)) {
+      gameState.timeLimit = duration;
+    }
+  });
 
   // Pause event: broadcast who paused/unpaused
   socket.on('togglePause', (isPaused, playerName) => {
     gameState.isPaused = isPaused;
     console.log("Paused by:", playerName);
-    io.emit('pauseStateChanged', { isPaused, playerName }); 
-});
+    io.emit('pauseStateChanged', { isPaused, playerName });
+  });
 
 });
 
@@ -294,10 +300,10 @@ function gameLoop() {
       if (now - gameState.lastShieldAt >= 10000) {
         gameState.lastShieldAt = now;
         gameState.shields.push({
-          id:    generateObjectId(),
-          x:     Math.random() * GAMEWINDOW_SIZE.x,
-          y:     0,
-          size:  30,
+          id: generateObjectId(),
+          x: Math.random() * GAMEWINDOW_SIZE.x,
+          y: 0,
+          size: 30,
           speed: OBJECTBASESPEED
         });
       }
@@ -305,10 +311,10 @@ function gameLoop() {
       if (now - gameState.lastHeartAt >= 20000) {
         gameState.lastHeartAt = now;
         gameState.hearts.push({
-          id:    generateObjectId(),
-          x:     Math.random() * GAMEWINDOW_SIZE.x,
-          y:     0,
-          size:  30,
+          id: generateObjectId(),
+          x: Math.random() * GAMEWINDOW_SIZE.x,
+          y: 0,
+          size: 30,
           speed: OBJECTBASESPEED
         });
       }
@@ -327,58 +333,58 @@ function gameLoop() {
       });
 
       gameState.shields = gameState.shields.filter(b => {
-  for (const p of gameState.players.values()) {
-    if (!p.alive) continue;
-    const dx = b.x - p.x, dy = b.y - p.y;
-    if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
-  
-      p.collisionImmunity = true;
-      setTimeout(() => {
-        p.collisionImmunity = false;
-      }, 15000); 
+        for (const p of gameState.players.values()) {
+          if (!p.alive) continue;
+          const dx = b.x - p.x, dy = b.y - p.y;
+          if (Math.hypot(dx, dy) < b.size / 2 + PLAYER_RADIUS) {
 
-      io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
+            p.collisionImmunity = true;
+            setTimeout(() => {
+              p.collisionImmunity = false;
+            }, 15000);
 
-      io.emit('playerMoved', p);
+            io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
 
-      return false; 
-    }
-  }
-  return true;
-});
-     gameState.hearts = gameState.hearts.filter(b => {
-  for (const p of gameState.players.values()) {
-    if (!p.alive) continue;
-    const dx = b.x - p.x, dy = b.y - p.y;
-    if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
+            io.emit('playerMoved', p);
 
-      if (p.lives < 3) {
-        p.lives++;
-      }
-   
-      io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
-  
-      io.emit('playerMoved', p);
-      return false;
-    }
-  }
-  return true;
-});
+            return false;
+          }
+        }
+        return true;
+      });
+      gameState.hearts = gameState.hearts.filter(b => {
+        for (const p of gameState.players.values()) {
+          if (!p.alive) continue;
+          const dx = b.x - p.x, dy = b.y - p.y;
+          if (Math.hypot(dx, dy) < b.size / 2 + PLAYER_RADIUS) {
 
-      
+            if (p.lives < 3) {
+              p.lives++;
+            }
+
+            io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
+
+            io.emit('playerMoved', p);
+            return false;
+          }
+        }
+        return true;
+      });
+
+
       updateFloatingTrunk();
-       gameState.coins.forEach((coin, index) => {
-       coin.y += coin.speed;
-       if (coin.y > GAMEWINDOW_SIZE.y + coin.size) {
-         gameState.coins.splice(index, 1);
-       }
-     });
-       if (gameState.coins.length < MAX_COINS && Math.random() < 0.02) {
+      gameState.coins.forEach((coin, index) => {
+        coin.y += coin.speed;
+        if (coin.y > GAMEWINDOW_SIZE.y + coin.size) {
+          gameState.coins.splice(index, 1);
+        }
+      });
+      if (gameState.coins.length < MAX_COINS && Math.random() < 0.02) {
         gameState.coins.push({
-          id:   generateCoinId(),
-          x:    Math.random() * (GAMEWINDOW_SIZE.x - 30),
-     
-           y:    0,
+          id: generateCoinId(),
+          x: Math.random() * (GAMEWINDOW_SIZE.x - 30),
+
+          y: 0,
           size: 30,
           speed: COIN_SPEED + Math.random(),
         });
@@ -386,12 +392,12 @@ function gameLoop() {
       gameState.coins = gameState.coins.filter(coin => {
         for (const p of gameState.players.values()) {
           if (!p.alive) continue;
-          const dx = coin.x + coin.size/2 - (p.x + PLAYER_RADIUS);
-          const dy = coin.y + coin.size/2 - (p.y + PLAYER_RADIUS);
-          if (Math.hypot(dx, dy) < coin.size/2 + PLAYER_RADIUS) {
+          const dx = coin.x + coin.size / 2 - (p.x + PLAYER_RADIUS);
+          const dy = coin.y + coin.size / 2 - (p.y + PLAYER_RADIUS);
+          if (Math.hypot(dx, dy) < coin.size / 2 + PLAYER_RADIUS) {
             p.coinCount = (p.coinCount || 0) + 1;
             io.emit('coinCollected', {
-              coinId:   coin.id,
+              coinId: coin.id,
               playerId: p.id,
               newCount: p.coinCount
             });
@@ -402,23 +408,23 @@ function gameLoop() {
       });
       checkForCollisions();
       io.emit('gameState', {
-     
+
         floatingTrunk: gameState.floatingTrunk,
-        coins:         gameState.coins,
-        shields:       gameState.shields,   
-        hearts:        gameState.hearts,
-        players:       Array.from(gameState.players.values()),
+        coins: gameState.coins,
+        shields: gameState.shields,
+        hearts: gameState.hearts,
+        players: Array.from(gameState.players.values()),
         timer: Math.floor(gameState.timer / 1000),
         timeLimit: gameState.timeLimit,
       });
       gameState.timer += delta;
-          if (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit) {
+      if (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit) {
 
         gameState.isGameRunning = false;
 
         const playersArr = Array.from(gameState.players.values());
         let winner = playersArr.reduce((best, p) => {
-          const pCount    = p.coinCount || 0;
+          const pCount = p.coinCount || 0;
           const bestCount = best.coinCount || 0;
           return (pCount > bestCount) ? p : best;
         }, playersArr[0]);
@@ -434,14 +440,14 @@ function gameLoop() {
       }
       io.emit('gameState', {
         floatingTrunk: gameState.floatingTrunk,
-        coins:         gameState.coins,
-         shields:       gameState.shields,    
-        hearts:        gameState.hearts,
-        players:       Array.from(gameState.players.values()),
-        timer:         Math.floor(gameState.timer / 1000),
-        timeLimit:     gameState.timeLimit
+        coins: gameState.coins,
+        shields: gameState.shields,
+        hearts: gameState.hearts,
+        players: Array.from(gameState.players.values()),
+        timer: Math.floor(gameState.timer / 1000),
+        timeLimit: gameState.timeLimit
       });
-    
+
     }
     gameState.lastUpdate = now;
   }
@@ -495,7 +501,7 @@ function checkForCollisions() {
 function updateFloatingTrunk() {
   gameState.floatingTrunk.forEach((object, index) => {
     object.y += object.speed;
-    if (object.y > GAMEWINDOW_SIZE.y +50) {
+    if (object.y > GAMEWINDOW_SIZE.y + 50) {
       gameState.floatingTrunk.splice(index, 1);
       if (1 === getRandomInt(7)) {
         gameState.floatingTrunk.push({
@@ -542,7 +548,7 @@ function resetGame() {
   gameState.isPaused = false;
   gameState.timer = 0;
   gameState.floatingTrunk = [];
-   gameState.coins         = []; 
+  gameState.coins = [];
   gameState.players.forEach(player => {
     player.alive = true;
     player.wins = 0;
@@ -550,7 +556,7 @@ function resetGame() {
     player.objectMulti = 1;
     player.lives = 3;
     player.collisionImmunity = false;
-  
+
     player.coinCount = 0;
   });
   ensureHostExists(); // Make sure there is a host after reset

@@ -19,11 +19,11 @@ class Game {
     // Animation and state management
     this.players = new Map();
     this.floatingTrunk = []; // floating trunks
-    this.modelCoins    = [];
-    this.modelShields  = [];
-    this.modelHearts   = [];
-    this.modelTimer    = 0;
-    this.modelTimeLimit= 0;
+    this.modelCoins = [];
+    this.modelShields = [];
+    this.modelHearts = [];
+    this.modelTimer = 0;
+    this.modelTimeLimit = 0;
     this.lastRender = 0; // timestamp of last render
     this.keys = new Set(); // keys currently pressed
     this.lastMoveSent = 0; // timestamp of last move sent to server
@@ -35,12 +35,12 @@ class Game {
     this.setupSocketListeners();
     this.setupControls();
     this.setupJoinHandlers();
-    this.coinManager  = new CoinManager(this);
+    this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
   }
 
-   renderScene() {
- 
+  renderScene() {
+
     this.players.forEach(player => {
 
       player.element.style.transform =
@@ -61,13 +61,13 @@ class Game {
     const remaining = Math.max(this.modelTimeLimit - this.modelTimer, 0);
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
-    this.timerDisplay.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 
-  
+
     this.floatingTrunk.forEach(obj => {
       let el = document.getElementById(obj.id);
       if (!el) {
- 
+
         el = document.createElement('div');
         el.id = obj.id;
         el.className = 'floating-trunk';
@@ -75,25 +75,25 @@ class Game {
         this.gameContainer.appendChild(el);
       }
 
-       el.style.width  = `${obj.size}px`;
-       el.style.height = `${obj.size}px`;
-     
+      el.style.width = `${obj.size}px`;
+      el.style.height = `${obj.size}px`;
+
       el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
     });
 
 
-     this.coinManager.renderCoins();
+    this.coinManager.renderCoins();
     this.bonusManager.renderShields();
     this.bonusManager.renderHearts();
 
-   
+
     this.updateScoreboard();
   }
 
   setupSocketListeners() {
     this.players = new Map();
     this.socket.on('connect', () => {
-      
+
       console.log('Connected to server');
     });
 
@@ -102,76 +102,76 @@ class Game {
       window.location.reload();
     });
 
-  this.socket.on('playerJoined', (player) => {
-  console.log("player joined:", player);
+    this.socket.on('playerJoined', (player) => {
+      console.log("player joined:", player);
 
-  this.socketId = player.id;
+      this.socketId = player.id;
 
-  if (!this.players.has(player.id)) {
-    this.players.set(player.id, {
-      ...player,
-      element: this.createPlayerElement(player)
+      if (!this.players.has(player.id)) {
+        this.players.set(player.id, {
+          ...player,
+          element: this.createPlayerElement(player)
+        });
+      }
+
+      this.isHost = player.isHost;
+      this.updateHostControls();
+
+      if (player.id === this.socketId) {
+        document.getElementById('joinScreen').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
+        this.startGameLoop();
+      }
+
+      this.updateScoreboard();
     });
-  }
-
-  this.isHost = player.isHost;
-  this.updateHostControls();
-
-  if (player.id === this.socketId) {
-    document.getElementById('joinScreen').style.display = 'none';
-    document.getElementById('gameScreen').style.display = 'block';
-    this.startGameLoop();
-  }
-
-  this.updateScoreboard();
-});
 
 
-this.socket.on('playerMoved', (player) => {
-  const existingPlayer = this.players.get(player.id);
-  if (!existingPlayer) return;
-const oldLives = existingPlayer.lives;
-  existingPlayer.x = player.x;
-  existingPlayer.y = player.y;
-  existingPlayer.collisionImmunity = player.collisionImmunity;
-  existingPlayer.lives = player.lives;
+    this.socket.on('playerMoved', (player) => {
+      const existingPlayer = this.players.get(player.id);
+      if (!existingPlayer) return;
+      const oldLives = existingPlayer.lives;
+      existingPlayer.x = player.x;
+      existingPlayer.y = player.y;
+      existingPlayer.collisionImmunity = player.collisionImmunity;
+      existingPlayer.lives = player.lives;
 
-   if (player.id === this.socketId && player.lives < oldLives) {
-    window.SoundManager.playHit();
-  }
+      if (player.id === this.socketId && player.lives < oldLives) {
+        window.SoundManager.playHit();
+      }
 
-});
+    });
 
 
-   this.socket.on('currentPlayers', (players) => {
-  const incomingIds = new Set(players.map(p => p.id));
+    this.socket.on('currentPlayers', (players) => {
+      const incomingIds = new Set(players.map(p => p.id));
 
-  players.forEach(sp => {
-    if (this.players.has(sp.id)) {
-      const existing = this.players.get(sp.id);
-      existing.x = sp.x;
-      existing.y = sp.y;
-      existing.lives = sp.lives;
-      existing.coinCount = sp.coinCount;
-      existing.collisionImmunity = sp.collisionImmunity;
-    } else {
-      const newPlayer = {
-        ...sp,
-        element: this.createPlayerElement(sp)
-      };
-      this.players.set(sp.id, newPlayer);
-    }
-  });
+      players.forEach(sp => {
+        if (this.players.has(sp.id)) {
+          const existing = this.players.get(sp.id);
+          existing.x = sp.x;
+          existing.y = sp.y;
+          existing.lives = sp.lives;
+          existing.coinCount = sp.coinCount;
+          existing.collisionImmunity = sp.collisionImmunity;
+        } else {
+          const newPlayer = {
+            ...sp,
+            element: this.createPlayerElement(sp)
+          };
+          this.players.set(sp.id, newPlayer);
+        }
+      });
 
-  for (const [id, p] of this.players) {
-    if (!incomingIds.has(id)) {
-      p.element.remove();
-      this.players.delete(id);
-    }
-  }
+      for (const [id, p] of this.players) {
+        if (!incomingIds.has(id)) {
+          p.element.remove();
+          this.players.delete(id);
+        }
+      }
 
-  this.updateScoreboard();
-});
+      this.updateScoreboard();
+    });
 
 
     this.socket.on('newHostAssigned', ({ playerId, playerName }) => {
@@ -204,67 +204,67 @@ const oldLives = existingPlayer.lives;
       console.log('Player died:', playerId);
     });
 
-this.socket.on('gameState', (state) => {
-  state.players.forEach(sp => {
-    const p = this.players.get(sp.id);
-    if (!p) return;
-    const oldLives = p.lives;
-    p.x = sp.x;           p.y = sp.y;
-    p.alive = sp.alive;   p.lives = sp.lives;
-    if (sp.id === this.socketId && sp.lives < oldLives) {
-     window.SoundManager.playHit();
-  }
-    p.collisionImmunity = sp.collisionImmunity;
-    p.coinCount = sp.coinCount || 0;
-    
-  });
+    this.socket.on('gameState', (state) => {
+      state.players.forEach(sp => {
+        const p = this.players.get(sp.id);
+        if (!p) return;
+        const oldLives = p.lives;
+        p.x = sp.x; p.y = sp.y;
+        p.alive = sp.alive; p.lives = sp.lives;
+        if (sp.id === this.socketId && sp.lives < oldLives) {
+          window.SoundManager.playHit();
+        }
+        p.collisionImmunity = sp.collisionImmunity;
+        p.coinCount = sp.coinCount || 0;
 
-  this.modelTimer     = state.timer;
-  this.modelTimeLimit = state.timeLimit || 0;
-  this.floatingTrunk  = state.floatingTrunk;
-  this.modelCoins     = state.coins;
-  this.modelShields   = state.shields;
-  this.modelHearts    = state.hearts;
+      });
 
- 
-});
+      this.modelTimer = state.timer;
+      this.modelTimeLimit = state.timeLimit || 0;
+      this.floatingTrunk = state.floatingTrunk;
+      this.modelCoins = state.coins;
+      this.modelShields = state.shields;
+      this.modelHearts = state.hearts;
+
+
+    });
 
 
 
     this.socket.on('joinError', (message) => {
-  const errorDiv = document.getElementById('joinError');
-  errorDiv.textContent = message;
-  errorDiv.style.color = 'red';
-});
+      const errorDiv = document.getElementById('joinError');
+      errorDiv.textContent = message;
+      errorDiv.style.color = 'red';
+    });
 
 
-this.socket.on('gameStarted', ({ hostName }) => {
-  console.log('[gameStarted] before: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
-  this.gameRunning = true;
-  this.isPaused = false;
-  window.SoundManager.playStart();
+    this.socket.on('gameStarted', ({ hostName }) => {
+      console.log('[gameStarted] before: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+      this.gameRunning = true;
+      this.isPaused = false;
+      window.SoundManager.playStart();
 
-  if (this.isPaused) {
-    this.togglePause();
-  }
-  const startButton = document.getElementById('startButton');
-  if (startButton) {
-    startButton.style.display = 'none';
-  }
-  // Delete resultOverlay when new game starts
-  const resultsOverlay = document.getElementById('resultsOverlay');
-  if (resultsOverlay) resultsOverlay.remove();
-  // Change text of Pause/Continue button
-  const pauseBtn = document.getElementById('pauseButton');
-  if (pauseBtn) {
-    pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
-  }
-  //Show overlay with only host's name
-  this.showPauseOverlay(`Game started by ${hostName}`, true, hostName, false);
-  console.log('[gameStarted] after: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
-  // Update host controls
-  this.updateHostControls();
-});
+      if (this.isPaused) {
+        this.togglePause();
+      }
+      const startButton = document.getElementById('startButton');
+      if (startButton) {
+        startButton.style.display = 'none';
+      }
+      // Delete resultOverlay when new game starts
+      const resultsOverlay = document.getElementById('resultsOverlay');
+      if (resultsOverlay) resultsOverlay.remove();
+      // Change text of Pause/Continue button
+      const pauseBtn = document.getElementById('pauseButton');
+      if (pauseBtn) {
+        pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
+      }
+      //Show overlay with only host's name
+      this.showPauseOverlay(`Game started by ${hostName}`, true, hostName, false);
+      console.log('[gameStarted] after: gameRunning:', this.gameRunning, 'isPaused:', this.isPaused);
+      // Update host controls
+      this.updateHostControls();
+    });
 
 
     this.socket.on('timerUpdate', (timeLeft) => {
@@ -284,7 +284,7 @@ this.socket.on('gameStarted', ({ hostName }) => {
       }
       if (isPaused) {
         window.SoundManager.playPause();
-        this.showPauseOverlay(`Game paused by ${playerName}`, false, playerName, true); 
+        this.showPauseOverlay(`Game paused by ${playerName}`, false, playerName, true);
       } else {
         window.SoundManager.playStart();
         this.hidePauseOverlay();
@@ -300,7 +300,7 @@ this.socket.on('gameStarted', ({ hostName }) => {
       if (this.players.size > 0) {
         this.showPauseOverlay(`Game resetted by: ${playerToReset}`, true, playerToReset, false);
       }
-      this.updateHostControls(); 
+      this.updateHostControls();
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -333,11 +333,11 @@ this.socket.on('gameStarted', ({ hostName }) => {
     });
 
 
-this.socket.on('gameOver', (data) => {
+    this.socket.on('gameOver', (data) => {
 
       this.gameRunning = false;
       window.SoundManager.playVictory();
-      this.showResults(data); 
+      this.showResults(data);
       if (this.isHost) {
         const startButton = document.getElementById('startButton');
         if (startButton) {
@@ -354,13 +354,13 @@ this.socket.on('gameOver', (data) => {
 
       this.updateScoreboard();
 
-  this.floatingTrunk.forEach(object => {
-    const el = document.getElementById(object.id);
-    if (el) el.remove();
-  });
-  this.floatingTrunk = [];
+      this.floatingTrunk.forEach(object => {
+        const el = document.getElementById(object.id);
+        if (el) el.remove();
+      });
+      this.floatingTrunk = [];
 
-});
+    });
 
     this.socket.on('notEnoughPlayers', (data) => {
       this.showSimpleModal(data.message || 'Not enough players to start the game!');
@@ -480,7 +480,7 @@ this.socket.on('gameOver', (data) => {
     this.loopId = requestAnimationFrame(this.gameLoop.bind(this));
   }
 
-   gameLoop(timestamp) {
+  gameLoop(timestamp) {
     this.handleInput(timestamp);
     this.renderScene();
     this.loopId = requestAnimationFrame(this.gameLoop.bind(this));
@@ -490,17 +490,17 @@ this.socket.on('gameOver', (data) => {
   }
 
   updateHostControls() {
-    const startButton  = document.getElementById('startButton');
-    const pauseBtn     = document.getElementById('pauseButton');
-    const timerSelDiv  = document.getElementById('timerSelector');
+    const startButton = document.getElementById('startButton');
+    const pauseBtn = document.getElementById('pauseButton');
+    const timerSelDiv = document.getElementById('timerSelector');
     console.log('[updateHostControls] isHost:', this.isHost, 'gameRunning:', this.gameRunning);
 
     if (this.isHost && !this.gameRunning) {
-      if (startButton)  startButton.style.display   = 'inline-block';
-      if (timerSelDiv)  timerSelDiv.style.display   = 'inline-block';
+      if (startButton) startButton.style.display = 'inline-block';
+      if (timerSelDiv) timerSelDiv.style.display = 'inline-block';
     } else {
-      if (startButton)  startButton.style.display   = 'none';
-      if (timerSelDiv)  timerSelDiv.style.display   = 'none';
+      if (startButton) startButton.style.display = 'none';
+      if (timerSelDiv) timerSelDiv.style.display = 'none';
     }
 
     if (pauseBtn) {
@@ -529,8 +529,8 @@ this.socket.on('gameOver', (data) => {
       return;
     }
     // this.socket.emit('startGame');
-     const minutes = parseInt(document.getElementById('timerSelect').value, 10);
-  this.socket.emit('startGame', { duration: minutes * 60 });
+    const minutes = parseInt(document.getElementById('timerSelect').value, 10);
+    this.socket.emit('startGame', { duration: minutes * 60 });
   }
 
   showPauseOverlay(message, fadeAway, playerName, isPauseMenu = false) {
@@ -658,20 +658,20 @@ this.socket.on('gameOver', (data) => {
   resetGame() {
     console.log(this.playerName)
     this.socket.emit('resetGame', this.playerName);
-      }
+  }
 
-showResults() {
-  const counts = window.coinManager.playerCounts;
-  const arr = Array.from(this.players.values()).map(p => ({
-    id: p.id,
-    name: p.name + (p.isHost ? ' (Host)' : ''),
-    count: counts[p.id] || 0
-  }));
-  arr.sort((a, b) => b.count - a.count);
-  const top4 = arr.slice(0, 4);
-  const overlay = document.createElement('div');
-  overlay.id = 'resultsOverlay';
-  overlay.style.cssText = `
+  showResults() {
+    const counts = window.coinManager.playerCounts;
+    const arr = Array.from(this.players.values()).map(p => ({
+      id: p.id,
+      name: p.name + (p.isHost ? ' (Host)' : ''),
+      count: counts[p.id] || 0
+    }));
+    arr.sort((a, b) => b.count - a.count);
+    const top4 = arr.slice(0, 4);
+    const overlay = document.createElement('div');
+    overlay.id = 'resultsOverlay';
+    overlay.style.cssText = `
     position: absolute;
     top: 0; left: 0;
     width: 100%; height: 100%;
@@ -684,30 +684,30 @@ showResults() {
     font-family: sans-serif;
     z-index: 10000;
   `;
-  const fireworks = document.createElement('div');
-  fireworks.className = 'fireworks';
-  overlay.appendChild(fireworks);
-  const board = document.createElement('div');
-  board.style.textAlign = 'center';
-  board.style.marginTop = '20px';
-  const trophies = ['🥇', '🥈', '🥉', '🏅'];
-  top4.forEach((p, i) => {
-    const row = document.createElement('div');
-    row.style.fontSize = '24px';
-    row.style.margin = '8px 0';
-    row.innerHTML = `
+    const fireworks = document.createElement('div');
+    fireworks.className = 'fireworks';
+    overlay.appendChild(fireworks);
+    const board = document.createElement('div');
+    board.style.textAlign = 'center';
+    board.style.marginTop = '20px';
+    const trophies = ['🥇', '🥈', '🥉', '🏅'];
+    top4.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.style.fontSize = '24px';
+      row.style.margin = '8px 0';
+      row.innerHTML = `
       <span style="font-size:48px">${trophies[i]}</span>
       <strong>${i + 1}.</strong>
       ${p.name} — <strong>${p.count} 💰</strong>
     `;
-    board.appendChild(row);
-  });
-  overlay.appendChild(board);
+      board.appendChild(row);
+    });
+    overlay.appendChild(board);
 
-  this.gameContainer.appendChild(overlay);
-  
-  const style = document.createElement('style');
-  style.textContent = `
+    this.gameContainer.appendChild(overlay);
+
+    const style = document.createElement('style');
+    style.textContent = `
     .fireworks {
       position: absolute;
       top: 0; left: 0;
@@ -717,19 +717,19 @@ showResults() {
       pointer-events: none;
     }
   `;
-  document.head.appendChild(style);
+    document.head.appendChild(style);
 
-  // Disable start button during overlay
-  const startButton = document.getElementById('startButton');
-  if (startButton) startButton.disabled = true;
+    // Disable start button during overlay
+    const startButton = document.getElementById('startButton');
+    if (startButton) startButton.disabled = true;
 
-  setTimeout(() => {
-    overlay.remove();
-    // Enable start button after overlay disappears
-    if (startButton) startButton.disabled = false;
-  }, 10000); // 10 seconds (duration of overlay and victory music)
-  
-}
+    setTimeout(() => {
+      overlay.remove();
+      // Enable start button after overlay disappears
+      if (startButton) startButton.disabled = false;
+    }, 10000); // 10 seconds (duration of overlay and victory music)
+
+  }
 
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');

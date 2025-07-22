@@ -36,6 +36,8 @@ const PLAYER_RADIUS = 15;
 
 const GAMEWINDOW_SIZE = { x: 1200, y: 800 };
 
+let chatHistory = [];
+
 const gameState = {
   players: new Map(),
   floatingTrunk: [],
@@ -72,6 +74,7 @@ function startNewGame(socket, playerName) {
   }
   if (!gameState.isGameRunning) {
     gameState.isGameRunning = true;
+    chatHistory = [];
     gameState.startTime = Date.now();
     const host = Array.from(gameState.players.values()).find(p => p.isHost);
     io.emit('gameStarted', { hostName: host ? host.name : 'Host' });
@@ -100,8 +103,9 @@ function ensureHostExists() {
 }
 io.on('connection', (socket) => {
 
-
   console.log('A user connected:', socket.id);
+
+    
 
   socket.on('joinGame', (data) => {
     // Check if game is already running
@@ -174,6 +178,8 @@ io.on('connection', (socket) => {
       timer: Math.floor(gameState.timer / 1000),
       timeLimit: gameState.timeLimit
     });
+
+      socket.emit('chatHistory', chatHistory);
 
     socket.emit('playerJoined', player);
   });
@@ -300,6 +306,20 @@ io.on('connection', (socket) => {
     gameState.isPaused = isPaused;
     console.log("Paused by:", playerName);
     io.emit('pauseStateChanged', { isPaused, playerName });
+  });
+
+  socket.on('chatMessage', (msg) => {
+    const player = gameState.players.get(socket.id);
+    const entry = {
+      id:       `${Date.now()}-${socket.id}`,
+      playerId: socket.id,
+      name:     player ? player.name : 'Unknown',
+      text:     msg,
+      time:     new Date().toISOString()
+    };
+
+    chatHistory.push(entry);
+    io.emit('chatMessage', entry);
   });
 
 });
@@ -504,6 +524,7 @@ function checkForCollisions() {
                 w.wins++;
               }
               io.emit('gameOver', { winner: w });
+              chatHistory = [];
               resetGame();
             }
           }

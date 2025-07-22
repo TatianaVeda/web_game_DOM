@@ -1,11 +1,13 @@
 import CoinManager from './coinManager.js';
 import BonusManager from './bonusManager.js';
+import ChatPlugin from './chatPlugin.js';
 
 
 class Game {
   constructor() {
     // Core game properties
     this.socket = io();
+     this.chatPlugin = new ChatPlugin(this);
     this.gameContainer = document.getElementById('gameContainer');
     this.scoreBoard = document.getElementById('scoreBoard');
     this.timerDisplay = document.getElementById('timer');
@@ -34,7 +36,9 @@ class Game {
 
     this.setupSocketListeners();
     this.setupControls();
+    
     this.setupJoinHandlers();
+    
     this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
   }
@@ -106,6 +110,8 @@ class Game {
         document.getElementById('joinScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'block';
         this.startGameLoop();
+
+         this.chatPlugin = new ChatPlugin(this);
       }
 
       this.updateScoreboard();

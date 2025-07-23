@@ -77,7 +77,7 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
   Floating trunks **🪵** are the main danger. If your boat collides with a trunk, you lose one life **❤️** and become temporarily invincible.
 
 - **Lives ❤️:**  
-  Each player starts with **3 lives** (❤️❤️❤️). Colliding with a trunk **🪵** or obstacle costs one life. If you lose all your lives, you are eliminated from the round.
+  Each player starts with **3 lives** (❤️❤️❤️). Colliding with a trunk **🪵** or obstacle costs one life. If you lose all your lives, you can no longer collect coins or interact. If only one player remains alive, the game ends immediately. This behavior is implemented in accordance with the requirements: "Your game must be playable by between 2 and 4 players." and "The game supports multiplayer with 2, 3 or 4 players."
 
 - **Bonuses:**  
   - **Shield 🛡️:** Grants 15 seconds of immunity to collisions.
@@ -96,13 +96,15 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 
 ## Features
 
--🌐 **Real-Time Synchronization:** Floating trunks move across the river, and all players must dodge them in real time. All players see each other's positions, actions, and scores.
+- 🌐 **Real-Time Synchronization:** Floating trunks move across the river, and all players must dodge them in real time. All players see each other's positions, actions, and scores/lives.
 - 🚤 **Playable Characters:** Each player controls their own boat, visible to all participants. Each player selects a unique name before joining.
 - 👥 **Equal Opportunity:** All boats have identical abilities and movement speed; every player has an equal chance to win.
 - 🧑‍🤝‍🧑 **Multiplayer (2-4 players):** Supports 2, 3, or 4 players per session. Each player can join from their own computer/browser via a provided URL or IP address.  
 - 🎵 **Sound Effects:** The game includes sound effects for game start, pause, player hit, collecting coins and victory🏆. Make sure to have your speakers on for the best experience!
 - ⏳ **Game Duration:** Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted. The host can choose the duration of the round before starting the game. 
-- 🏆 **Leaderboard:** Real-time leaderboard shows players' coin counts.
+- 🏆 **Leaderboard:** Real-time leaderboard shows players' coin counts and lives of all players.
+- 💬 **In-game Chat:** Players can chat with each other in real time during the game.
+- 🕹️ **Game Modes:** Multiple game modes available (e.g. coins, survival, infection) — host can select the mode.
 - 🚫 **No Canvas:** The game uses only DOM elements for rendering and animation. Designed to run at 60 FPS.
 - ⏸️ **Pause Menu:** The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game. The initiator's name is shown to all.
 - 🪄 **Overlay Windows:** All important events (pause, restart, player quit/disconnect, game over) are shown via overlays.

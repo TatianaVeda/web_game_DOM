@@ -43,6 +43,35 @@ class Game {
     
     this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
+    // Scale the field when starting
+    this.applyScaleToFit();
+    window.addEventListener('resize', () => this.applyScaleToFit());
+    this.lastPlayerPos = { x: 0, y: 0 };
+    this.lastPlayerSpeed = 0;
+  }
+
+  applyScaleToFit() {
+    // Get field and window sizes
+    const container = this.gameContainer;
+    if (!container) return;
+    const fieldWidth = container.scrollWidth;
+    const fieldHeight = container.scrollHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    // Calculate scale (but not more than 1)
+    const scale = Math.min(
+      windowWidth / fieldWidth,
+      windowHeight / fieldHeight,
+      1
+    );
+    container.style.transform = `scale(${scale})`;
+    container.style.transformOrigin = 'top left';
+    // To make scroll work correctly, reset scroll
+    if (scale < 1) {
+      container.parentElement.style.overflow = 'hidden';
+    } else {
+      container.parentElement.style.overflow = 'auto';
+    }
   }
 
   renderScene(delta) {
@@ -60,6 +89,14 @@ class Game {
 
       if (player.id === this.socketId) {
         this.livesIndicator.innerHTML = '❤️'.repeat(player.lives);
+        // Calculate player's speed
+        const dx = player.x - (this.lastPlayerPos.x ?? player.x);
+        const dy = player.y - (this.lastPlayerPos.y ?? player.y);
+        const speed = Math.sqrt(dx*dx + dy*dy) / (delta || 1);
+        this.lastPlayerSpeed = speed;
+        this.lastPlayerPos = { x: player.x, y: player.y };
+        // Center camera on local player, pass speed
+        this.centerPlayerInView(player, speed);
       }
     });
 
@@ -799,6 +836,32 @@ if (!this.isPaused) {
       }
     });
     this.players.clear();
+  }
+
+  centerPlayerInView(player, speed) {
+    const container = this.gameContainer;
+    if (!container || !player || !player.element) return;
+    // Player coordinates relative to container
+    const playerX = player.x;
+    const playerY = player.y;
+    const playerSize = player.element.offsetWidth || 30;
+    // Visible area sizes (with scale)
+    const scale = parseFloat(container.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || '1');
+    const visibleWidth = container.clientWidth / (scale || 1);
+    const visibleHeight = container.clientHeight / (scale || 1);
+    // Center player
+    const targetScrollLeft = playerX - visibleWidth / 2 + playerSize / 2;
+    const targetScrollTop = playerY - visibleHeight / 2 + playerSize / 2;
+    // Select scroll behavior based on speed
+    let behavior = 'smooth';
+    if (speed !== undefined && speed > 0.6) { // speed threshold can be adjusted
+      behavior = 'smooth';
+    }
+    container.scrollTo({
+      left: Math.max(0, targetScrollLeft),
+      top: Math.max(0, targetScrollTop),
+      behavior
+    });
   }
 }
 

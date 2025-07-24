@@ -1,3 +1,4 @@
+/* file style.css */
 .floating-trunk {
   position: absolute;
   will-change: transform;
@@ -47,17 +48,32 @@ body {
 #gameScreen {
   display: none;
   width: 100%;
-  max-width: 1200px;
+  /* max-width: 1200px; */
 }
 
 .game-container {
   position: relative;
-  width: 1200px;
-  height: 800px;
+  width: 96vw;
+  min-width: 480px;
+  max-width: 1200px;
+  aspect-ratio: 3/2;
+  height: auto;
+  max-height: 80vh; /* a little less, so that the buttons are always visible */
+  margin-bottom: 0;
   background: #4668e6;
   border: 2px solid #444;
-  overflow: hidden;
+  overflow: auto;
   margin: auto;
+  box-sizing: border-box;
+}
+
+/* Animations of appearance */
+.coin, .bonus, .player-ball {
+  animation: pop-in 0.3s;
+}
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 .player-ball {
@@ -127,11 +143,11 @@ body {
 }
 
 .game-controls {
+  margin-top: 10px;
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin-top: 10px;
-}
+ }
 
 .game-controls button,
 .game-controls select {
@@ -273,4 +289,29 @@ body {
 @keyframes infected-pulse {
   from { transform: scale(1); }
   to   { transform: scale(1.05); }
+}
+
+@media (max-width: 600px) {
+  .timer {
+    font-size: 28px;
+    padding: 4px;
+  }
+  .lives-indicator {
+    font-size: 14px;
+    padding: 4px;
+  }
+  .score-board, #leaderboard {
+    font-size: 12px;
+    padding: 4px;
+    top: 4px;
+    right: 4px;
+    max-width: 60vw;
+    overflow-x: auto;
+  }
+  .game-controls button, .game-controls select {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-width: 40px;
+    min-height: 24px;
+  }
 }

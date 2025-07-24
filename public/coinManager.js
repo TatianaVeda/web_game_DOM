@@ -13,6 +13,9 @@ class CoinManager {
 
     this.setupSocket();
     this.injectCSS();
+
+     const initialMode = this.game.modePlugin.currentMode;
+    this.container.style.display = initialMode === 'coins' ? 'block' : 'none';
   }
 
   setupSocket() {
@@ -74,6 +77,9 @@ class CoinManager {
 
   updateRanking() {
      const mode = this.game.modePlugin?.currentMode || 'coins';
+     this.container.style.display = mode === 'coins' ? 'block' : 'none';
+
+ 
     
     const playersArr = Array.from(this.game.players.values());
     let sorted;

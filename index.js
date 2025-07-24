@@ -43,6 +43,7 @@ const gameState = {
   players: new Map(),
   floatingTrunk: [],
   coins: [],
+  eliminationOrder: [],
   shields: [],
   hearts: [],
   lastShieldAt: 0,
@@ -79,7 +80,10 @@ function startNewGame(socket, playerName) {
     chatHistory = [];
     gameState.startTime = Date.now();
     const host = Array.from(gameState.players.values()).find(p => p.isHost);
-    io.emit('gameStarted', { hostName: host ? host.name : 'Host' });
+    io.emit('gameStarted', {
+     hostName: host ? host.name : 'Host',
+     mode:     gameState.mode    
+   });
 
     // add one floatingTrunk at the start
     gameState.floatingTrunk.push({
@@ -107,7 +111,7 @@ io.on('connection', (socket) => {
 
   console.log('A user connected:', socket.id);
 
-    
+
 
   socket.on('joinGame', (data) => {
     // Check if game is already running
@@ -172,6 +176,7 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('currentPlayers', allPlayers);
 
     socket.emit('gameState', {
+      mode:          gameState.mode,
       floatingTrunk: gameState.floatingTrunk,
       coins: gameState.coins,
       shields: gameState.shields,
@@ -181,20 +186,20 @@ io.on('connection', (socket) => {
       timeLimit: gameState.timeLimit
     });
 
-      
-    
+
+
 
     socket.emit('playerJoined', player);
   });
 
   socket.on('changeGameMode', mode => {
-  const player = gameState.players.get(socket.id);
-  if (!player?.isHost) return;
-  if (!['coins','survival','infection'].includes(mode)) return;
+    const player = gameState.players.get(socket.id);
+    if (!player?.isHost) return;
+    if (!['coins', 'survival', 'infection'].includes(mode)) return;
 
-  gameState.mode = mode;
-  io.emit('gameModeChanged', mode);
-});
+    gameState.mode = mode;
+    io.emit('gameModeChanged', mode);
+  });
 
   socket.on('move', (x, y) => {
     x = Math.min(Math.max(x, -1), 1);
@@ -232,7 +237,7 @@ io.on('connection', (socket) => {
   // Quit event: broadcast who quit
   socket.on('playerQuit', (playerName) => {
     console.log('Player quit:', playerName);
-     resetGame();
+    resetGame();
     io.emit('playerQuit', playerName);
   });
 
@@ -259,13 +264,17 @@ io.on('connection', (socket) => {
     if (gameState.isGameRunning && alivePlayers.length === 1) {
       gameState.isGameRunning = false;
       const winner = alivePlayers[0];
-      if (winner) {
-        winner.wins++;
-      }
-      io.emit('gameOver', { winner });
+      if (winner) winner.wins++;
+
+      io.emit('gameOver', {
+        mode: gameState.mode,
+        winner
+      });
+
       resetGame();
       return;
     }
+
 
     io.emit('playerDisconnected', socket.id);
 
@@ -324,11 +333,11 @@ io.on('connection', (socket) => {
   socket.on('chatMessage', (msg) => {
     const player = gameState.players.get(socket.id);
     const entry = {
-      id:       `${Date.now()}-${socket.id}`,
+      id: `${Date.now()}-${socket.id}`,
       playerId: socket.id,
-      name:     player ? player.name : 'Unknown',
-      text:     msg,
-      time:     new Date().toISOString()
+      name: player ? player.name : 'Unknown',
+      text: msg,
+      time: new Date().toISOString()
     };
 
     chatHistory.push(entry);
@@ -338,8 +347,9 @@ io.on('connection', (socket) => {
 });
 
 
+
 function gameLoop() {
-  const now   = Date.now();
+  const now = Date.now();
   const delta = now - gameState.lastUpdate;
 
   if (delta < gameState.tickRate) {
@@ -347,24 +357,24 @@ function gameLoop() {
   }
 
   if (gameState.isGameRunning && !gameState.isPaused && gameState.players.size > 0) {
- 
+
     if (now - gameState.lastShieldAt >= 10000) {
       gameState.lastShieldAt = now;
       gameState.shields.push({
-        id:    generateObjectId(),
-        x:     Math.random() * GAMEWINDOW_SIZE.x,
-        y:     0,
-        size:  30,
+        id: generateObjectId(),
+        x: Math.random() * GAMEWINDOW_SIZE.x,
+        y: 0,
+        size: 30,
         speed: OBJECTBASESPEED
       });
     }
     if (now - gameState.lastHeartAt >= 20000) {
       gameState.lastHeartAt = now;
       gameState.hearts.push({
-        id:    generateObjectId(),
-        x:     Math.random() * GAMEWINDOW_SIZE.x,
-        y:     0,
-        size:  30,
+        id: generateObjectId(),
+        x: Math.random() * GAMEWINDOW_SIZE.x,
+        y: 0,
+        size: 30,
         speed: OBJECTBASESPEED
       });
     }
@@ -379,63 +389,62 @@ function gameLoop() {
     });
 
     gameState.shields = gameState.shields.filter(b => {
-     for (const p of gameState.players.values()) {
-       if (!p.alive) continue;
-       const dx = b.x - p.x, dy = b.y - p.y;
-       if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
+      for (const p of gameState.players.values()) {
+        if (!p.alive) continue;
+        const dx = b.x - p.x, dy = b.y - p.y;
+        if (Math.hypot(dx, dy) < b.size / 2 + PLAYER_RADIUS) {
+          p.collisionImmunity = true;
+          setTimeout(() => p.collisionImmunity = false, 15000);
+          io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
+          io.emit('playerMoved', p);
+          return false;
+        }
+      }
+      return true;
+    });
 
-         p.collisionImmunity = true;
-         setTimeout(() => p.collisionImmunity = false, 15000);
-         io.emit('shieldCollected', { bonusId: b.id, playerId: p.id });
-         io.emit('playerMoved', p);
-         return false;
-       }
-     }
-     return true;
-   });
-
-   gameState.hearts = gameState.hearts.filter(b => {
-     for (const p of gameState.players.values()) {
-       if (!p.alive) continue;
-       const dx = b.x - p.x, dy = b.y - p.y;
-       if (Math.hypot(dx, dy) < b.size/2 + PLAYER_RADIUS) {
-         if (p.lives < 3) p.lives++;
-         io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
-         io.emit('playerMoved', p);
-         return false;
-       }
-     }
-     return true;
-   });
+    gameState.hearts = gameState.hearts.filter(b => {
+      for (const p of gameState.players.values()) {
+        if (!p.alive) continue;
+        const dx = b.x - p.x, dy = b.y - p.y;
+        if (Math.hypot(dx, dy) < b.size / 2 + PLAYER_RADIUS) {
+          if (p.lives < 3) p.lives++;
+          io.emit('heartCollected', { bonusId: b.id, playerId: p.id });
+          io.emit('playerMoved', p);
+          return false;
+        }
+      }
+      return true;
+    });
 
     if (gameState.mode === 'coins') {
-
+    
       gameState.coins.forEach((coin, idx) => {
         coin.y += coin.speed;
         if (coin.y > GAMEWINDOW_SIZE.y + coin.size) {
           gameState.coins.splice(idx, 1);
         }
       });
-
+   
       if (gameState.coins.length < MAX_COINS && Math.random() < 0.02) {
         gameState.coins.push({
-          id:    generateCoinId(),
-          x:     Math.random() * (GAMEWINDOW_SIZE.x - 30),
-          y:     0,
-          size:  30,
+          id: generateCoinId(),
+          x: Math.random() * (GAMEWINDOW_SIZE.x - 30),
+          y: 0,
+          size: 30,
           speed: COIN_SPEED + Math.random(),
         });
       }
-
+      
       gameState.coins = gameState.coins.filter(coin => {
         for (const p of gameState.players.values()) {
           if (!p.alive) continue;
-          const dx = coin.x + coin.size/2 - (p.x + PLAYER_RADIUS);
-          const dy = coin.y + coin.size/2 - (p.y + PLAYER_RADIUS);
-          if (Math.hypot(dx, dy) < coin.size/2 + PLAYER_RADIUS) {
+          const dx = coin.x + coin.size / 2 - (p.x + PLAYER_RADIUS);
+          const dy = coin.y + coin.size / 2 - (p.y + PLAYER_RADIUS);
+          if (Math.hypot(dx, dy) < coin.size / 2 + PLAYER_RADIUS) {
             p.coinCount = (p.coinCount || 0) + 1;
             io.emit('coinCollected', {
-              coinId:   coin.id,
+              coinId: coin.id,
               playerId: p.id,
               newCount: p.coinCount
             });
@@ -446,6 +455,7 @@ function gameLoop() {
       });
     }
 
+   
     if (gameState.mode === 'survival') {
       if (!gameState._lastSpeedup) gameState._lastSpeedup = now;
       if (now - gameState._lastSpeedup >= 20000) {
@@ -453,44 +463,88 @@ function gameLoop() {
         OBJECTBASESPEED += 0.5;
         io.emit('gameSpeedUp', OBJECTBASESPEED);
       }
+
+       if (!gameState._lastSpawn) gameState._lastSpawn = now;
+      if (now - gameState._lastSpawn >= 5000) {
+        gameState._lastSpawn = now;
+        for (let i = 0; i < 3; i++) {
+          gameState.floatingTrunk.push({
+            id: generateObjectId(),
+            x:  Math.random() * GAMEWINDOW_SIZE.x,
+            y:  0,
+            size: 20 * (1 + Math.random() * 2),      
+            speed: OBJECTBASESPEED + (1 + Math.random() * 2), 
+            gathered: false,
+          });
+        }
+      }
+    
     }
 
+   
     updateFloatingTrunk();
-
     checkForCollisions();
 
-    io.emit('gameState', {
-      floatingTrunk: gameState.floatingTrunk,
-      coins:         gameState.mode === 'coins' ? gameState.coins : [],
-      shields:       gameState.shields,
-      hearts:        gameState.hearts,
-      players:       Array.from(gameState.players.values()),
   
-      timer:     gameState.mode === 'coins' ? Math.floor(gameState.timer / 1000) : undefined,
+    io.emit('gameState', {
+      mode:          gameState.mode,
+      floatingTrunk: gameState.floatingTrunk,
+      coins: gameState.mode === 'coins' ? gameState.coins : [],
+      shields: gameState.shields,
+      hearts: gameState.hearts,
+      players: Array.from(gameState.players.values()),
+      timer: gameState.mode === 'coins' ? Math.floor(gameState.timer / 1000) : undefined,
       timeLimit: gameState.mode === 'coins' ? gameState.timeLimit : undefined,
     });
 
-  
-    if (gameState.mode === 'coins') {
-    
-      gameState.timer += delta;
-      if (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit) {
+   
+    if (gameState.mode === 'coins' || gameState.mode === 'infection') {
+     
+      if (gameState.mode === 'coins') {
+        gameState.timer += delta;
+      }
+
+      const timeUp = gameState.mode === 'coins'
+        ? (gameState.timeLimit > 0 && Math.floor(gameState.timer / 1000) >= gameState.timeLimit)
+        : false;
+
+      const alive = Array.from(gameState.players.values()).filter(p => p.alive);
+      const lastOne = alive.length <= 1;
+
+
+
+      if (timeUp || (gameState.mode === 'infection' && lastOne)) {
         gameState.isGameRunning = false;
-       
+
         const arr = Array.from(gameState.players.values());
-        const winner = arr.reduce((best, p) =>
-          (p.coinCount || 0) > (best.coinCount || 0) ? p : best
-        , arr[0]);
-        io.emit('gameOver', { winner });
+        const winner = arr.reduce((best, p) => (p.coinCount || 0) > (best.coinCount || 0) ? p : best, arr[0]);
+
+        io.emit('gameOver', {
+          mode: gameState.mode,            
+          winner
+        });
+
+
         resetGame();
       }
-    } else {
-    
+    }
+    else if (gameState.mode === 'survival') {
+      
       const alive = Array.from(gameState.players.values()).filter(p => p.alive);
       if (alive.length <= 1) {
         gameState.isGameRunning = false;
-        const winner = alive[0] || null;
-        io.emit('gameOver', { winner });
+
+        const winnerId = alive[0]?.id;
+        const eliminated = gameState.eliminationOrder || [];
+        const losers = eliminated.filter(id => id !== winnerId);
+        const fullRanking = [];
+        if (winnerId) fullRanking.push(winnerId);
+        fullRanking.push(...losers);
+
+        io.emit('gameOver', {
+          mode: 'survival',
+          ranking: fullRanking
+        });
         resetGame();
       }
     }
@@ -499,6 +553,7 @@ function gameLoop() {
   gameState.lastUpdate = now;
   setImmediate(gameLoop);
 }
+
 
 
 
@@ -515,13 +570,13 @@ function checkForCollisions() {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < (object.size / 2) + PLAYER_RADIUS) {
-      
+
         if (gameState.mode === 'infection') {
-        
+
           player.infected = true;
-      
+
           io.to(player.id).emit('infected');
-        
+
           object.gathered = true;
           return;
         }
@@ -540,19 +595,44 @@ function checkForCollisions() {
           io.emit('playerMoved', player); // Emit playerMoved event to update lives on client
           if (player.lives <= 0) {
             player.alive = false;
+            gameState.eliminationOrder.push(player.id);
+
             io.emit('playerDied', { playerId: player.id });
 
-            if (Array.from(gameState.players.values()).filter(p => p.alive).length <= 1) {
+            const alive = Array.from(gameState.players.values()).filter(p => p.alive);
+            if (alive.length <= 1) {
               gameState.isGameRunning = false;
-              let w = Array.from(gameState.players.values()).find(p => p.alive);
-              if (w) {
-                w.wins++;
+
+              if (gameState.mode === 'survival') {
+                const winnerId = alive[0]?.id;
+                const eliminated = gameState.eliminationOrder || [];
+                const losers = eliminated.filter(id => id !== winnerId);
+                const fullRanking = [];
+                if (winnerId) fullRanking.push(winnerId);
+                fullRanking.push(...losers);
+
+                io.emit('gameOver', {
+                  mode: 'survival',
+                  ranking: fullRanking
+                });
+              } else {
+                const arr = Array.from(gameState.players.values());
+                const w = arr.reduce((best, p) =>
+                  (p.coinCount || 0) > (best.coinCount || 0) ? p : best
+                  , arr[0]);
+
+                io.emit('gameOver', {
+                  mode: gameState.mode,
+                  winner: w
+                });
               }
-              io.emit('gameOver', { winner: w });
+
               chatHistory = [];
               resetGame();
             }
           }
+
+
         }
       }
     });
@@ -589,6 +669,8 @@ function updateFloatingTrunk() {
   const elapsedTime = gameState.timer / 1000;
   const numberOfObjects = Math.floor(elapsedTime / 5);
 
+
+
   while (gameState.floatingTrunk.length < numberOfObjects) {
     gameState.floatingTrunk.push({
       id: `object-${Date.now()}`,
@@ -606,32 +688,33 @@ function getRandomInt(max) {
 }
 function resetGame() {
   gameState.isGameRunning = false;
-  gameState.isPaused     = false;
+  gameState.isPaused = false;
 
-  gameState.timer     = 0;
+  gameState.timer = 0;
   gameState.timeLimit = 0;
   gameState.lastShieldAt = 0;
-  gameState.lastHeartAt  = 0;
-  gameState._lastSpeedup = 0;  
+  gameState.lastHeartAt = 0;
+  gameState._lastSpeedup = 0;
   OBJECTBASESPEED = INITIAL_OBJECT_SPEED;
 
   gameState.floatingTrunk = [];
-  gameState.coins         = [];
-  gameState.shields       = [];
-  gameState.hearts        = [];
+  gameState.coins = [];
+  gameState.shields = [];
+  gameState.hearts = [];
+  gameState.eliminationOrder = [];
 
   gameState.players.forEach(player => {
-    player.alive            = true;
-    player.wins             = 0;
-    player.speedMulti       = 1;
-    player.objectMulti      = 1;
-    player.lives            = 3;
-    player.collisionImmunity= false;
-    player.coinCount        = 0;
+    player.alive = true;
+    player.wins = 0;
+    player.speedMulti = 1;
+    player.objectMulti = 1;
+    player.lives = 3;
+    player.collisionImmunity = false;
+    player.coinCount = 0;
     delete player.infected;
   });
 
-  ensureHostExists(); 
+  ensureHostExists();
 }
 
 

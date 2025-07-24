@@ -284,5 +284,10 @@ body {
   cursor: pointer;
 }
 #emojiPicker {
+  position: absolute;
+  bottom: 100%;   
+  right: 0;
+  margin-bottom: 8px;  
   z-index: 2000;
+  display: none;
 }

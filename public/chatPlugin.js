@@ -113,10 +113,12 @@ export default class ChatPlugin {
     this.pickerContainer = document.createElement('div');
     this.pickerContainer.id = 'emojiPicker';
      this.pickerContainer.style.display = 'none';
-    this.container.appendChild(this.pickerContainer);
+    // this.container.appendChild(this.pickerContainer);
+    this.window.appendChild(this.pickerContainer);
+
 
     // Emoji-mart Picker
-    this.picker = new Picker({ onSelect: emoji => {
+    this.picker = new Picker({ onEmojiSelect: emoji => {
       this.input.value += emoji.native;
       this.input.focus();
     }});

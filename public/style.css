@@ -274,3 +274,15 @@ body {
   from { transform: scale(1); }
   to   { transform: scale(1.05); }
 }
+
+
+#emojiBtn {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  margin-right: 4px;
+  cursor: pointer;
+}
+#emojiPicker {
+  z-index: 2000;
+}

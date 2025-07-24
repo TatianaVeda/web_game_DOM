@@ -8,7 +8,7 @@ class Game {
   constructor() {
     // Core game properties
     this.socket = io();
-    this.chatPlugin = new ChatPlugin(this);
+    // this.chatPlugin = new ChatPlugin(this);
     this.modePlugin = new GameModePlugin(this);
     this.gameContainer = document.getElementById('gameContainer');
     this.scoreBoard = document.getElementById('scoreBoard');
@@ -43,6 +43,7 @@ class Game {
 
     this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
+   
   }
 
   renderScene(delta) {
@@ -400,6 +401,31 @@ class Game {
       };
     }
   }
+
+   setupMentionClicks() {
+ 
+    const board = document.getElementById('leaderboard');
+    if (!board) return;
+
+
+    board.addEventListener('click', e => {
+ 
+      const el = e.target.closest('.player-score');
+      if (!el) return;
+
+      const name = el.dataset.name;
+      if (!name) return;
+
+      const chat = this.chatPlugin;
+      if (!chat) return;
+
+      if (!chat.isOpen) chat.toggle();
+
+      chat.input.value += `@${name} `;
+      chat.input.focus();
+    });
+  }
+
 
   togglePause() {
     // You can press Pause always when player is in the game

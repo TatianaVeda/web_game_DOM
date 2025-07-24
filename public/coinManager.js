@@ -111,28 +111,29 @@ class CoinManager {
 
     const board = document.getElementById('leaderboard');
     board.innerHTML = sorted.map((p, i) => {
- 
-      if (mode === 'coins') {
-        const coinsHtml = `${p.count} 💰`;
-        const livesHtml = '❤️'.repeat(p.lives);
-        return `
-          <div class="player-score">
-            ${i + 1}. ${p.name}: ${coinsHtml}, Lives: ${livesHtml}
-          </div>
-        `;
-      }
-      else {
-        const status = mode === 'infection'
-          ? (p.infected ? '🦠 ' : '🙂 ')
-          : '';
-        const livesHtml = '❤️'.repeat(p.lives);
-        return `
-          <div class="player-score">
-            ${i + 1}. ${status}${p.name}: ${livesHtml}
-          </div>
-        `;
-      }
-    }).join('');
+  const displayIndex = `${i + 1}.`;
+  const safeName = p.name.replace(/"/g, '&quot;'); // на всякий случай экранируем кавычки
+
+  if (mode === 'coins') {
+    const coinsHtml = `${p.count} 💰`;
+    const livesHtml = '❤️'.repeat(p.lives);
+    return `
+      <div class="player-score" data-name="${safeName}">
+        ${displayIndex} ${safeName}: ${coinsHtml}, Lives: ${livesHtml}
+      </div>
+    `;
+  } else {
+    const status = mode === 'infection'
+      ? (p.infected ? '🦠 ' : '🙂 ')
+      : '';
+    const livesHtml = '❤️'.repeat(p.lives);
+    return `
+      <div class="player-score" data-name="${safeName}">
+        ${displayIndex} ${status}${safeName}: ${livesHtml}
+      </div>
+    `;
+  }
+}).join('');
   }
 
   injectCSS() {

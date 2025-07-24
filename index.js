@@ -175,6 +175,8 @@ io.on('connection', (socket) => {
     socket.emit('currentPlayers', allPlayers);
     socket.broadcast.emit('currentPlayers', allPlayers);
 
+    socket.emit('chatHistory', chatHistory);
+
     socket.emit('gameState', {
       mode:          gameState.mode,
       floatingTrunk: gameState.floatingTrunk,

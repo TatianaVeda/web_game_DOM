@@ -111,6 +111,22 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 - 🎮 **Keyboard Controls:** Control your boat with the arrow keys. Keyboard input is smooth and responsive.
 - ✨ **Extra Features:** Power-ups (shields, hearts), sound effects, real-time overlays, and a competitive, enjoyable gameplay experience: the winner is determined by skill, speed, and strategy.
 
+## Visual Design & Responsiveness
+
+- **Flexible scaling:** The game field automatically resizes to fit the browser window, maintaining its aspect ratio and always staying fully visible. The field is always centered and maximized, but never exceeds the window size.
+- **Smooth scroll-to-player:** The camera smoothly centers on the player avatar, ensuring the player is always in view, even during fast movement.
+- **Fixed HUD & controls:** All HUD elements (lives, score, timer) and the chat are fixed to the browser window corners and never disappear, regardless of field movement or scaling. Controls are always visible and neatly placed below the game field.
+- **Responsive chat:** The chat window is always anchored to the bottom right, grows as messages appear, and never overlaps the game field.
+- **No scrollbars:** There are never scrollbars inside the game field; all content is always visible and fits the available space.
+- **Adaptive UI:** All interface elements (buttons, HUD, chat) scale down and rearrange for usability on small screens.
+
+- **Floating Visual Hints for Key Events:**
+  - When a player collects a coin, a floating '+1' appears above their avatar, providing instant feedback.
+  - When a player collects a heart (extra life), a floating '+1' appears above their avatar.
+  - When a player collects a shield, a floating hint '🛡️ 15 seconds of immunity' appears above their avatar, making the bonus effect clear and visually engaging.
+  - When a player loses a life (e.g., collides with a trunk), a floating '💔' appears above their avatar, and the avatar briefly shakes for extra feedback.
+- **Smooth Animations:** All floating hints and key events are accompanied by smooth CSS animations for a modern, responsive feel.
+
 ---
 ## Team Members
 

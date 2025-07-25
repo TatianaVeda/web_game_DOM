@@ -47,6 +47,10 @@ export default class BonusManager {
         const p = this.game.players.get(playerId);
         p.collisionImmunity = true;
         setTimeout(() => { p.collisionImmunity = false; }, 15000);
+        // Floating hint on the avatar
+        if (p && p.element) {
+          this.game.showFloatingPlus(p.x, p.y, '🛡️ 15 seconds of immunity');
+        }
       }
     });
 
@@ -66,6 +70,10 @@ export default class BonusManager {
         if (p.lives < 3) {
           p.lives++;
           this.game.updateLivesIndicator(p);
+          // Floating plus +1
+          if (p.element) {
+            this.game.showFloatingPlus(p.x, p.y, '+1');
+          }
         }
       }
     });

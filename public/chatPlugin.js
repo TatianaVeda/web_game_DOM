@@ -14,37 +14,42 @@ export default class ChatPlugin {
   injectStyles() {
     const css = `
       #chatToggleBtn {
-        position: absolute; bottom: 10px; right: 10px;
-        z-index: 1000;
-        padding: 8px 12px;
-        background: #333; color: #fff; border: none; border-radius: 4px;
+        position: fixed; bottom: 36px; right: 36px;
+        z-index: 2100;
+        padding: 12px 20px;
+        font-size: 18px;
+        background: #333; color: #fff; border: none; border-radius: 6px;
         cursor: pointer;
       }
       #chatWindow {
-        position: absolute;
-        bottom: 50px; right: 10px;
-        width: 300px; height: 400px;
+        position: fixed;
+        bottom: 84px; right: 36px;
+        width: 380px;
+        min-height: 60px;
+        max-height: 60vh;
+        height: auto;
         background: rgba(0,0,0,0.8); color: #fff;
         display: none; flex-direction: column;
-        z-index: 1000; border-radius: 4px;
+        z-index: 2100; border-radius: 6px;
+        transition: height 0.2s;
       }
       #chatMessages {
-        flex: 1; overflow-y: auto; padding: 8px;
+        flex: 1; overflow-y: auto; padding: 11px;
       }
       #chatForm {
         display: flex; border-top: 1px solid #555;
       }
       #chatInput {
-        flex: 1; padding: 8px; border: none; outline: none;
+        flex: 1; padding: 10px; border: none; outline: none;
         background: #222; color: #fff;
       }
       #chatSend {
-        padding: 8px 12px; border: none;
+        padding: 10px 16px; border: none;
         background: #444; color: #fff; cursor: pointer;
       }
-      .chat-entry { margin-bottom: 6px; }
-      .chat-entry .name { font-weight: bold; margin-right: 4px; }
-      .chat-entry .time { font-size: 0.8em; color: #ccc; }
+      .chat-entry { margin-bottom: 8px; }
+      .chat-entry .name { font-weight: bold; margin-right: 6px; }
+      .chat-entry .time { font-size: 0.9em; color: #ccc; }
     `;
     const style = document.createElement('style');
     style.textContent = css;
@@ -57,7 +62,7 @@ export default class ChatPlugin {
     this.toggleBtn.id = 'chatToggleBtn';
     this.toggleBtn.textContent = 'Chat';
     this.toggleBtn.onclick = () => this.toggle();
-    this.container.appendChild(this.toggleBtn);
+    document.body.appendChild(this.toggleBtn);
 
     // Chat window
     this.window = document.createElement('div');
@@ -69,7 +74,7 @@ export default class ChatPlugin {
         <button id="chatSend" type="submit">Send</button>
       </form>
     `;
-    this.container.appendChild(this.window);
+    document.body.appendChild(this.window);
 
     this.messagesDiv = this.window.querySelector('#chatMessages');
     this.input       = this.window.querySelector('#chatInput');
@@ -85,19 +90,19 @@ export default class ChatPlugin {
   }
 
   setupSocket() {
-    // Получаем историю при подключении
+    // Get history when connecting
     this.socket.on('chatHistory', history => {
       this.history = history;
       this.history.forEach(e => this.addEntry(e));
     });
 
-    // Новые сообщения
+    // New messages
     this.socket.on('chatMessage', entry => {
       this.history.push(entry);
       this.addEntry(entry);
     });
 
-    // Очищаем чат при начале/конце матча
+    // Clear chat when game starts/ends
     this.socket.on('gameStarted', () => this.clear());
     this.socket.on('gameOver',    () => this.clear());
   }

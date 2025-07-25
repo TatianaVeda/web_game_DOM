@@ -94,6 +94,7 @@ function startNewGame(socket, playerName) {
   }
   return false;
 }
+
 function ensureHostExists() {
   const playersArr = Array.from(gameState.players.values());
   if (!playersArr.some(p => p.isHost)) {

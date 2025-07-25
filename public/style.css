@@ -7,23 +7,29 @@
   transition: transform 16ms linear;
 }
 
-body {
+body, html {
+  height: 100vh;
+  width: 100vw;
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif;
+  overflow: hidden;
   background: #4668e6;
   color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  font-family: Arial, sans-serif;
 }
 
 #joinScreen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background: #2a2a2a;
   padding: 20px;
   border-radius: 10px;
   text-align: center;
+  z-index: 3000;
+  min-width: 320px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
 }
 
 #joinScreen input {
@@ -47,24 +53,58 @@ body {
 
 #gameScreen {
   display: none;
-  width: 100%;
-  /* max-width: 1200px; */
 }
-
 .game-container {
   position: relative;
-  width: 96vw;
-  min-width: 480px;
-  max-width: 1200px;
   aspect-ratio: 3/2;
+  width: 96vw;
+  max-width: 1200px;
   height: auto;
-  max-height: 80vh; /* a little less, so that the buttons are always visible */
-  margin-bottom: 0;
+  max-height: 80vh;
+  margin: auto;
   background: #4668e6;
   border: 2px solid #444;
-  overflow: auto;
-  margin: auto;
+  overflow: hidden;
   box-sizing: border-box;
+}
+
+/* HUD fixed on top of the window */
+.score-board {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 2000;
+  background: rgba(173, 168, 168, 0.7);
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #222;
+  max-width: 40vw;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.lives-indicator {
+  position: fixed;
+  top: 16px;
+  left: 24px;
+  z-index: 2000;
+  font-size: 22px;
+  color: #e53935;
+  background: rgba(255,255,255,0.1);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.timer {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  font-size: 36px;
+  color: #fff;
+  background: rgba(0,0,0,0.1);
+  padding: 8px 16px;
+  border-radius: 8px;
 }
 
 /* Animations of appearance */
@@ -107,58 +147,48 @@ body {
   box-shadow: #444;
 }
 
-.score-board {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(173, 168, 168, 0.7);
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.timer {
-  position: absolute;
-  top: 10px;
-  left: 45%;
-  background: transparent;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 48px;
-}
-
-.lives-indicator {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: transparent;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 18px;
-  color: white;
-}
-
-.lives-indicator .heart {
-  font-size: 24px;
-  margin-right: 5px;
-}
-
+/* === Modern styles for control buttons === */
 .game-controls {
   margin-top: 10px;
   display: flex;
   justify-content: center;
   gap: 10px;
- }
+  width: 100%;
+}
 
 .game-controls button,
 .game-controls select {
-  padding: 10px 20px;
+  padding: 7px 16px;
   font-size: 16px;
   border: none;
-  border-radius: 5px;
-  border: none;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  min-width: 90px;
+  min-height: 36px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
   outline: none;
-  min-width: 70px;
-  min-height: 30px;
+  font-family: inherit;
+  font-weight: 500;
+}
+
+#startButton {
+  background: #4caf50;
+  color: #fff;
+}
+
+.game-controls button:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.game-controls button:hover:not(:disabled),
+.game-controls select:hover {
+  background: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
 
 .game-controls select {
@@ -167,14 +197,6 @@ body {
   border: 1px solid #bbb;
   padding: 8px 12px;
   min-width: 60px;
-}
-
-#startButton {
-  background: #4caf50;
-}
-
-.game-controls button:hover {
-  opacity: 0.9;
 }
 
 .error-message {
@@ -291,27 +313,108 @@ body {
   to   { transform: scale(1.05); }
 }
 
+.floating-plus {
+  position: absolute;
+  color: #ffd700; /* bright gold */
+  font-size: 28px;
+  font-weight: bold;
+  pointer-events: none;
+  animation: floatUp 1.2s ease-out forwards;
+  z-index: 1000;
+  text-shadow: 1px 1px 4px #222;
+}
+@keyframes floatUp {
+  from { opacity: 1; transform: scale(1.4) translateY(0); }
+  to   { opacity: 0; transform: scale(1) translateY(-60px); }
+}
+
+.heart-fade {
+  animation: heartFadeOut 0.7s forwards;
+}
+@keyframes heartFadeOut {
+  from { opacity: 1; transform: scale(1); }
+  60% { opacity: 0.5; transform: scale(1.3) rotate(-20deg); }
+  to { opacity: 0; transform: scale(0.5) rotate(30deg); }
+}
+
+.coin-hud-float {
+  position: absolute;
+  z-index: 2000;
+  pointer-events: none;
+  animation: coinHudFloat 0.9s ease-out forwards;
+}
+@keyframes coinHudFloat {
+  from { opacity: 1; transform: scale(1.3) translateY(0); }
+  60%  { opacity: 1; transform: scale(1) translateY(-18px); }
+  to   { opacity: 0; transform: scale(0.8) translateY(-36px); }
+}
+
+.player-ball.shake {
+  animation: shake 0.5s;
+}
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+
+/* Media queries for small screens */
 @media (max-width: 600px) {
-  .timer {
-    font-size: 28px;
-    padding: 4px;
+  .game-container {
+    aspect-ratio: 1/1;
+  }
+  .score-board, .lives-indicator, .timer {
+    font-size: 12px !important;
+    padding: 4px 6px !important;
+    border-radius: 6px !important;
+  }
+  .score-board {
+    top: 6px !important;
+    right: 6px !important;
+    max-width: 60vw;
   }
   .lives-indicator {
-    font-size: 14px;
-    padding: 4px;
+    top: 6px !important;
+    left: 6px !important;
   }
-  .score-board, #leaderboard {
-    font-size: 12px;
-    padding: 4px;
-    top: 4px;
-    right: 4px;
-    max-width: 60vw;
-    overflow-x: auto;
+  .timer {
+    top: 6px !important;
   }
   .game-controls button, .game-controls select {
     font-size: 12px;
-    padding: 6px 10px;
-    min-width: 40px;
-    min-height: 24px;
+    padding: 4px 8px;
+    min-width: 54px;
+    min-height: 26px;
   }
+  #joinScreen {
+    min-width: 200px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .score-board, .lives-indicator, .timer {
+    font-size: 10px !important;
+    padding: 2px 4px !important;
+    border-radius: 4px !important;
+  }
+  .game-controls button, .game-controls select {
+    font-size: 10px;
+    padding: 4px 6px;
+    min-width: 30px;
+    min-height: 18px;
+  }
+}
+
+#chat, .chat-container, .chat-box {
+  position: fixed !important;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2100;
+  max-width: 320px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  border-radius: 8px;
 }

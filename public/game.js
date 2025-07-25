@@ -51,27 +51,21 @@ class Game {
   }
 
   applyScaleToFit() {
-    // Get field and window sizes
     const container = this.gameContainer;
     if (!container) return;
-    const fieldWidth = container.scrollWidth;
-    const fieldHeight = container.scrollHeight;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-    // Calculate scale (but not more than 1)
-    const scale = Math.min(
-      windowWidth / fieldWidth,
-      windowHeight / fieldHeight,
-      1
-    );
-    container.style.transform = `scale(${scale})`;
-    container.style.transformOrigin = 'top left';
-    // To make scroll work correctly, reset scroll
-    if (scale < 1) {
-      container.parentElement.style.overflow = 'hidden';
-    } else {
-      container.parentElement.style.overflow = 'auto';
-    }
+    const aspect = 3 / 2; // или твой динамический aspect-ratio
+    const controls = document.querySelector('.game-controls');
+    const controlsHeight = controls ? controls.offsetHeight : 0;
+    const availableHeight = window.innerHeight - controlsHeight - 32; // 32px — небольшой отступ
+    let w = window.innerWidth * 0.98;
+    let h = availableHeight;
+    if (w / h > aspect) w = h * aspect;
+    else h = w / aspect;
+    container.style.width = w + 'px';
+    container.style.height = h + 'px';
+    container.style.transform = '';
+    container.style.transformOrigin = '';
+    container.parentElement.style.overflow = 'hidden';
   }
 
   renderScene(delta) {
@@ -168,6 +162,12 @@ if (!this.isPaused) {
 
       if (player.id === this.socketId && player.lives < oldLives) {
         window.SoundManager.playHit();
+        // Floating hint '💔' with shake animation
+        if (existingPlayer.element) {
+          this.showFloatingPlus(existingPlayer.x, existingPlayer.y, '💔');
+          existingPlayer.element.classList.add('shake');
+          setTimeout(() => existingPlayer.element.classList.remove('shake'), 500);
+        }
       }
 
     });
@@ -364,7 +364,6 @@ if (!this.isPaused) {
 
 
     this.socket.on('gameOver', (data) => {
-
       this.gameRunning = false;
       window.SoundManager.playVictory();
       this.showResults(data);
@@ -381,9 +380,7 @@ if (!this.isPaused) {
         player.alive = true;
         player.element.style.display = 'block';
       });
-
       this.updateScoreboard();
-
       this.floatingTrunk.forEach(object => {
         const el = document.getElementById(object.id);
         if (el) el.remove();
@@ -708,18 +705,18 @@ if (!this.isPaused) {
     const overlay = document.createElement('div');
     overlay.id = 'resultsOverlay';
     overlay.style.cssText = `
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-    font-family: sans-serif;
-    z-index: 10000;
-  `;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: sans-serif;
+      z-index: 10000;
+    `;
     const fireworks = document.createElement('div');
     fireworks.className = 'fireworks';
     overlay.appendChild(fireworks);
@@ -732,27 +729,27 @@ if (!this.isPaused) {
       row.style.fontSize = '24px';
       row.style.margin = '8px 0';
       row.innerHTML = `
-      <span style="font-size:48px">${trophies[i]}</span>
-      <strong>${i + 1}.</strong>
-      ${p.name} — <strong>${p.count} 💰</strong>
-    `;
+        <span style="font-size:48px">${trophies[i]}</span>
+        <strong>${i + 1}.</strong>
+        ${p.name} — <strong>${p.count} 💰</strong>
+      `;
       board.appendChild(row);
     });
     overlay.appendChild(board);
 
-    this.gameContainer.appendChild(overlay);
+    document.body.appendChild(overlay);
 
     const style = document.createElement('style');
     style.textContent = `
-    .fireworks {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('/images/fireworks.gif') center/cover no-repeat;
-      opacity: 0.6;
-      pointer-events: none;
-    }
-  `;
+      .fireworks {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: url('/images/fireworks.gif') center/cover no-repeat;
+        opacity: 0.6;
+        pointer-events: none;
+      }
+    `;
     document.head.appendChild(style);
 
     // Disable start button during overlay
@@ -764,7 +761,6 @@ if (!this.isPaused) {
       // Enable start button after overlay disappears
       if (startButton) startButton.disabled = false;
     }, 10000); // 10 seconds (duration of overlay and victory music)
-
   }
 
   setupJoinHandlers() {
@@ -857,11 +853,23 @@ if (!this.isPaused) {
     if (speed !== undefined && speed > 0.6) { // speed threshold can be adjusted
       behavior = 'smooth';
     }
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
     container.scrollTo({
-      left: Math.max(0, targetScrollLeft),
-      top: Math.max(0, targetScrollTop),
+      left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
+      top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
       behavior
     });
+  }
+
+  showFloatingPlus(x, y, text = '+1') {
+    const el = document.createElement('span');
+    el.className = 'floating-plus';
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    this.gameContainer.appendChild(el);
+    setTimeout(() => el.remove(), 800);
   }
 }
 

@@ -37,6 +37,13 @@ class CoinManager {
         this.coins.delete(coinId);
       }
       window.SoundManager.playCoin();
+      // Floating +1 on the avatar
+      if (playerId === this.game.socketId) {
+        const player = this.game.players.get(playerId);
+        if (player && player.element) {
+          this.game.showFloatingPlus(player.x, player.y, '+1');
+        }
+      }
     });
   }
 
@@ -148,7 +155,7 @@ class CoinManager {
     style.textContent = css;
     document.head.appendChild(style);
   }
-}
+} 
 
 export default CoinManager;
 

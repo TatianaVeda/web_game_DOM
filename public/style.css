@@ -13,6 +13,9 @@ body, html {
   background: #4668e6;
   color: white;
   font-family: Arial, sans-serif;
+  /* Minimal size of the window for correct game display */
+  min-width: 800px;
+  min-height: 600px;
 }
 
 #joinScreen {

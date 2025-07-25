@@ -35,7 +35,6 @@ class Game {
     this.socketId = null;
     this.chatPlugin = null;
     this.lastResizeUpdate = 0;
-    this.lastScrollUpdate = 0;
     this.lastFloatingHint = 0;
     this.floatingHintThrottle = 200; // minimum interval between hints
 
@@ -65,25 +64,58 @@ class Game {
     
     const container = this.gameContainer;
     if (!container) return;
-    const aspect = 3 / 2; // dynamic aspect-ratio
+    
+    // Fixed game field dimensions
+    const gameWidth = 1200;
+    const gameHeight = 800;
+    
+    // Get available space
     const controls = document.querySelector('.game-controls');
     const controlsHeight = controls ? controls.offsetHeight : 0;
-    const availableHeight = window.innerHeight - controlsHeight - 32; // 32px — небольшой отступ
-    let w = window.innerWidth * 0.98;
-    let h = availableHeight;
-    if (w / h > aspect) w = h * aspect;
-    else h = w / aspect;
+    const hudHeight = 80; // Space for HUD (lives, timer, scoreboard)
+    const margin = 20; // Margin from edges
     
-    // Check if we really need to change the size
-    const currentWidth = parseFloat(container.style.width) || container.offsetWidth;
-    const currentHeight = parseFloat(container.style.height) || container.offsetHeight;
-    if (Math.abs(w - currentWidth) < 5 && Math.abs(h - currentHeight) < 5) return;
+    // Calculate available space
+    const availableWidth = window.innerWidth - margin * 2;
+    const availableHeight = window.innerHeight - controlsHeight - hudHeight - margin * 2;
     
-    container.style.width = w + 'px';
-    container.style.height = h + 'px';
-    container.style.transform = '';
-    container.style.transformOrigin = '';
-    container.parentElement.style.overflow = 'hidden';
+    // Check minimum window dimensions
+    const minWindowWidth = 800;
+    const minWindowHeight = 600;
+    
+    if (window.innerWidth < minWindowWidth || window.innerHeight < minWindowHeight) {
+      // Show warning about minimum window size
+      this.showWindowSizeWarning();
+      
+      // But still scale the game for small window
+      const scaleX = availableWidth / gameWidth;
+      const scaleY = availableHeight / gameHeight;
+      const scale = Math.min(scaleX, scaleY, 1);
+      
+      container.style.width = gameWidth + 'px';
+      container.style.height = gameHeight + 'px';
+      container.style.transform = `scale(${scale})`;
+      container.style.transformOrigin = 'top left';
+      container.style.position = 'relative';
+      container.style.margin = 'auto';
+      return;
+    }
+    
+    // Hide warning if window is large enough
+    this.hideWindowSizeWarning();
+    
+    // Calculate scale to fit game field in available space
+    const scaleX = availableWidth / gameWidth;
+    const scaleY = availableHeight / gameHeight;
+    const scale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond original size
+    
+    // Apply scale
+    container.style.width = gameWidth + 'px';
+    container.style.height = gameHeight + 'px';
+    container.style.transform = `scale(${scale})`;
+    container.style.transformOrigin = 'top left';
+    container.style.position = 'relative';
+    container.style.margin = 'auto';
   }
 
   renderScene(delta) {
@@ -105,8 +137,9 @@ class Game {
         const speed = Math.sqrt(dx*dx + dy*dy) / (delta || 1);
         this.lastPlayerSpeed = speed;
         this.lastPlayerPos = { x: player.x, y: player.y };
-        // Center camera on local player, pass speed
-        this.centerPlayerInView(player, speed);
+        
+        // Check if player is visible in current window
+        this.checkPlayerVisibility();
       }
     });
 
@@ -185,7 +218,6 @@ class Game {
           // setTimeout(() => existingPlayer.element.classList.remove('shake'), 500);
         }
       }
-
     });
     this.socket.on('currentPlayers', (players) => {
       const incomingIds = new Set(players.map(p => p.id));
@@ -193,8 +225,22 @@ class Game {
       players.forEach(sp => {
         if (this.players.has(sp.id)) {
           const existing = this.players.get(sp.id);
-          existing.x = sp.x;
-          existing.y = sp.y;
+          
+          // Apply position limits for local player
+          if (sp.id === this.socketId) {
+            const bounds = this.getMovementBounds();
+            if (bounds) {
+              existing.x = Math.max(bounds.minX, Math.min(bounds.maxX, sp.x));
+              existing.y = Math.max(bounds.minY, Math.min(bounds.maxY, sp.y));
+            } else {
+              existing.x = sp.x;
+              existing.y = sp.y;
+            }
+          } else {
+            existing.x = sp.x;
+            existing.y = sp.y;
+          }
+          
           existing.lives = sp.lives;
           existing.coinCount = sp.coinCount;
           existing.collisionImmunity = sp.collisionImmunity;
@@ -203,6 +249,16 @@ class Game {
             ...sp,
             element: this.createPlayerElement(sp)
           };
+          
+          // Apply position limits for new local player
+          if (sp.id === this.socketId) {
+            const bounds = this.getMovementBounds();
+            if (bounds) {
+              newPlayer.x = Math.max(bounds.minX, Math.min(bounds.maxX, sp.x));
+              newPlayer.y = Math.max(bounds.minY, Math.min(bounds.maxY, sp.y));
+            }
+          }
+          
           this.players.set(sp.id, newPlayer);
         }
       });
@@ -257,14 +313,28 @@ class Game {
         const p = this.players.get(sp.id);
         if (!p) return;
         const oldLives = p.lives;
-        p.x = sp.x; p.y = sp.y;
+        
+        // Apply position limits for local player
+        if (sp.id === this.socketId) {
+          const bounds = this.getMovementBounds();
+          if (bounds) {
+            p.x = Math.max(bounds.minX, Math.min(bounds.maxX, sp.x));
+            p.y = Math.max(bounds.minY, Math.min(bounds.maxY, sp.y));
+          } else {
+            p.x = sp.x;
+            p.y = sp.y;
+          }
+        } else {
+          p.x = sp.x;
+          p.y = sp.y;
+        }
+        
         p.alive = sp.alive; p.lives = sp.lives;
         if (sp.id === this.socketId && sp.lives < oldLives) {
           window.SoundManager.playHit();
         }
         p.collisionImmunity = sp.collisionImmunity;
         p.coinCount = sp.coinCount || 0;
-
       });
 
       this.modelTimer = state.timer;
@@ -273,11 +343,7 @@ class Game {
       this.modelCoins = state.coins;
       this.modelShields = state.shields;
       this.modelHearts = state.hearts;
-
-
     });
-
-
 
     this.socket.on('joinError', (message) => {
       const errorDiv = document.getElementById('joinError');
@@ -482,7 +548,7 @@ class Game {
       pauseBtn.textContent = this.isPaused ? 'Continue' : 'Pause';
     }
     if (this.isPaused) {
-      this.showPauseOverlay(`Game paused by ${this.playerName}`, false, this.playerName, true); // Меню паузы
+              this.showPauseOverlay(`Game paused by ${this.playerName}`, false, this.playerName, true); // Pause menu
     } else {
       this.hidePauseOverlay();
     }
@@ -525,6 +591,15 @@ class Game {
   handleInput(timestamp) {
     if (timestamp - this.lastMoveSent < this.moveThrottle) return;
     if (this.isPaused) return; // Don't send move events when paused
+    
+    // Get current player position
+    const player = this.players.get(this.socketId);
+    if (!player) return;
+    
+    // Get movement boundaries
+    const bounds = this.getMovementBounds();
+    if (!bounds) return;
+    
     let mx = 0, my = 0;
     if (this.keys.has('ArrowUp')) {
       my--;
@@ -539,10 +614,69 @@ class Game {
       mx++;
     }
 
+    // Check if player would go beyond boundaries
     if (mx !== 0 || my !== 0) {
-      this.socket.emit('move', mx, my);
-      this.lastMoveSent = timestamp;
+      const newX = player.x + mx * 5; // 5 - movement speed
+      const newY = player.y + my * 5;
+      
+      // If movement would go beyond boundaries - block it
+      if (newX < bounds.minX || newX > bounds.maxX) {
+        mx = 0;
+      }
+      if (newY < bounds.minY || newY > bounds.maxY) {
+        my = 0;
+      }
+      
+      // Send movement only if it's allowed
+      if (mx !== 0 || my !== 0) {
+        this.socket.emit('move', mx, my);
+        this.lastMoveSent = timestamp;
+      }
     }
+  }
+
+  getMovementBounds() {
+    const container = this.gameContainer;
+    if (!container) return null;
+    
+    // Get scale from transform
+    const transform = container.style.transform;
+    const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+    const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+    
+    // Get container position and size
+    const rect = container.getBoundingClientRect();
+    
+    // Get UI elements heights
+    const controls = document.querySelector('.game-controls');
+    const controlsHeight = controls ? controls.offsetHeight : 0;
+    const hudHeight = 80;
+    const playerSize = 50; // Increased player size to account for full avatar
+    
+    // Calculate visible game area in screen coordinates
+    const visibleTop = hudHeight;
+    const visibleBottom = window.innerHeight - controlsHeight;
+    const visibleLeft = 0;
+    const visibleRight = window.innerWidth;
+    
+    // Convert screen coordinates to game coordinates
+    const gameTop = (visibleTop - rect.top) / scale;
+    const gameBottom = (visibleBottom - rect.top) / scale;
+    const gameLeft = (visibleLeft - rect.left) / scale;
+    const gameRight = (visibleRight - rect.left) / scale;
+    
+    // Calculate bounds ensuring player stays fully visible
+    const minX = Math.max(0, gameLeft);
+    const maxX = Math.max(0, gameRight - playerSize);
+    const minY = Math.max(0, gameTop);
+    const maxY = Math.max(0, gameBottom - playerSize);
+    
+    return {
+      minX: minX,
+      maxX: maxX,
+      minY: minY,
+      maxY: maxY
+    };
   }
 
   startGameLoop() {
@@ -947,66 +1081,6 @@ class Game {
     });
     this.players.clear();
   }
-
-  centerPlayerInView(player, speed) {
-    // Smooth throttling for smooth scroll-to-player
-    const now = performance.now();
-    if (this.lastScrollUpdate && now - this.lastScrollUpdate < 300) return; //  (60 FPS max) Increased to 300 ms for stability (60 FPS max)
-    this.lastScrollUpdate = now;
-    
-    const container = this.gameContainer;
-    if (!container || !player || !player.element) return;
-    
-    // Player coordinates relative to container
-    const playerX = player.x;
-    const playerY = player.y;
-    const playerSize = player.element.offsetWidth || 30;
-    
-    // Visible area sizes (with scale)
-    const scale = parseFloat(container.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || '1');
-    const visibleWidth = container.clientWidth / (scale || 1);
-    const visibleHeight = container.clientHeight / (scale || 1);
-    
-    // Center player
-    const targetScrollLeft = playerX - visibleWidth / 2 + playerSize / 2;
-    const targetScrollTop = playerY - visibleHeight / 2 + playerSize / 2;
-    
-    // Check if we really need to scroll (higher threshold for smoothness)
-    const currentScrollLeft = container.scrollLeft;
-    const currentScrollTop = container.scrollTop;
-    const scrollThreshold = 150; // Increased threshold to prevent shaking
-    
-    const needsHorizontalScroll = Math.abs(targetScrollLeft - currentScrollLeft) > scrollThreshold;
-    const needsVerticalScroll = Math.abs(targetScrollTop - currentScrollTop) > scrollThreshold;
-    
-    if (!needsHorizontalScroll && !needsVerticalScroll) return;
-    
-    // Check if the player is moving too fast (long press)
-    if (speed > 2.0) {
-      // When moving fast, use auto for instant scroll
-      const behavior = 'auto';
-      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-      const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-      
-      container.scrollTo({
-        left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
-        top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
-        behavior
-      });
-    } else {
-      // When moving slowly, use smooth
-      const behavior = 'smooth';
-      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-      const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-      
-      container.scrollTo({
-        left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
-        top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
-        behavior
-      });
-    }
-  }
-
   showFloatingPlus(x, y, text = '+1') {
     const el = document.createElement('span');
     el.className = 'floating-plus';
@@ -1015,6 +1089,145 @@ class Game {
     el.style.top = y + 'px';
     this.gameContainer.appendChild(el);
     setTimeout(() => el.remove(), 800);
+  }
+
+  showWindowSizeWarning() {
+    // Remove existing warning
+    this.hideWindowSizeWarning();
+    
+    const warning = document.createElement('div');
+    warning.id = 'windowSizeWarning';
+    warning.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      text-align: center;
+      z-index: 10000;
+      font-size: 14px;
+      font-weight: normal;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    `;
+    warning.innerHTML = `
+      <div>📱 Please increase window size for comfortable gameplay</div>
+    `;
+    document.body.appendChild(warning);
+    
+    // hide automatically <10 sec
+    setTimeout(() => {
+      this.hideWindowSizeWarning();
+    }, 10000);
+  }
+
+  hideWindowSizeWarning() {
+    const warning = document.getElementById('windowSizeWarning');
+    if (warning) {
+      warning.remove();
+    }
+  }
+
+  checkPlayerVisibility() {
+    const player = this.players.get(this.socketId);
+    if (!player) return;
+    
+    const container = this.gameContainer;
+    if (!container) return;
+    
+    // Get scale from transform
+    const transform = container.style.transform;
+    const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+    const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+    
+    // Get container position and size
+    const rect = container.getBoundingClientRect();
+    
+    // Calculate player position in screen coordinates
+    const playerScreenX = rect.left + player.x * scale;
+    const playerScreenY = rect.top + player.y * scale;
+    
+    // Get UI elements heights
+    const controls = document.querySelector('.game-controls');
+    const controlsHeight = controls ? controls.offsetHeight : 0;
+    const hudHeight = 80;
+    const playerSize = 50; // Match the size used in other methods
+    
+    // Check if player is fully within visible browser area
+    const isVisible = playerScreenX >= 0 && 
+                     playerScreenX + playerSize * scale <= window.innerWidth &&
+                     playerScreenY >= hudHeight && 
+                     playerScreenY + playerSize * scale <= window.innerHeight - controlsHeight;
+    
+    if (!isVisible) {
+      this.showPlayerVisibilityWarning();
+      // Force player back to visible area if they're outside
+      this.forcePlayerToVisibleArea(player, rect, scale, controlsHeight, hudHeight);
+    } else {
+      this.hidePlayerVisibilityWarning();
+    }
+  }
+
+  forcePlayerToVisibleArea(player, containerRect, scale, controlsHeight, hudHeight) {
+    const playerSize = 50; // Match the size used in getMovementBounds
+    
+    // Calculate visible game area in screen coordinates
+    const visibleTop = hudHeight;
+    const visibleBottom = window.innerHeight - controlsHeight;
+    const visibleLeft = 0;
+    const visibleRight = window.innerWidth;
+    
+    // Convert screen coordinates to game coordinates
+    const gameTop = (visibleTop - containerRect.top) / scale;
+    const gameBottom = (visibleBottom - containerRect.top) / scale;
+    const gameLeft = (visibleLeft - containerRect.left) / scale;
+    const gameRight = (visibleRight - containerRect.left) / scale;
+    
+    // Calculate bounds ensuring player stays fully visible
+    const minX = Math.max(0, gameLeft);
+    const maxX = Math.max(0, gameRight - playerSize);
+    const minY = Math.max(0, gameTop);
+    const maxY = Math.max(0, gameBottom - playerSize);
+    
+    // Clamp player position
+    player.x = Math.max(minX, Math.min(maxX, player.x));
+    player.y = Math.max(minY, Math.min(maxY, player.y));
+  }
+
+  showPlayerVisibilityWarning() {
+    // Remove existing warning
+    this.hidePlayerVisibilityWarning();
+    
+    const warning = document.createElement('div');
+    warning.id = 'playerVisibilityWarning';
+    warning.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 165, 0, 0.9);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      text-align: center;
+      z-index: 10000;
+      font-size: 12px;
+      font-weight: normal;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    `;
+    warning.innerHTML = `
+      <div>🎯 Player is outside visible area - move up or resize window</div>
+    `;
+    document.body.appendChild(warning);
+  }
+
+  hidePlayerVisibilityWarning() {
+    const warning = document.getElementById('playerVisibilityWarning');
+    if (warning) {
+      warning.remove();
+    }
   }
 }
 

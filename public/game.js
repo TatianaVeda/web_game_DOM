@@ -43,7 +43,7 @@ class Game {
 
     this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
-<<<<<<< HEAD
+
     // Scale the field when starting
     this.applyScaleToFit();
     window.addEventListener('resize', () => this.applyScaleToFit());
@@ -67,9 +67,7 @@ class Game {
     container.style.transform = '';
     container.style.transformOrigin = '';
     container.parentElement.style.overflow = 'hidden';
-=======
-   
->>>>>>> main
+
   }
 
   renderScene(delta) {
@@ -178,8 +176,6 @@ class Game {
       }
 
     });
-
-
     this.socket.on('currentPlayers', (players) => {
       const incomingIds = new Set(players.map(p => p.id));
 
@@ -737,7 +733,6 @@ class Game {
 
     const overlay = document.createElement('div');
     overlay.id = 'resultsOverlay';
-<<<<<<< HEAD
     overlay.style.cssText = `
       position: fixed;
       top: 0; left: 0;
@@ -751,22 +746,6 @@ class Game {
       font-family: sans-serif;
       z-index: 10000;
     `;
-=======
-    Object.assign(overlay.style, {
-      position: 'absolute',
-      top: 0, left: 0,
-      width: '100%', height: '100%',
-      background: 'rgba(0, 0, 0, 0.8)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      color: 'white',
-      fontFamily: 'sans-serif',
-      zIndex: 10000
-    });
-
->>>>>>> main
     const fireworks = document.createElement('div');
     fireworks.className = 'fireworks';
     overlay.appendChild(fireworks);
@@ -774,9 +753,9 @@ class Game {
     const board = document.createElement('div');
     board.style.textAlign = 'center';
     board.style.marginTop = '20px';
-<<<<<<< HEAD
-    const trophies = ['🥇', '🥈', '🥉', '🏅'];
-    top4.forEach((p, i) => {
+
+    /*const trophies = ['🥇', '🥈', '🥉', '🏅'];
+     top4.forEach((p, i) => {
       const row = document.createElement('div');
       row.style.fontSize = '24px';
       row.style.margin = '8px 0';
@@ -787,10 +766,9 @@ class Game {
       `;
       board.appendChild(row);
     });
-    overlay.appendChild(board);
+    overlay.appendChild(board); */
 
     document.body.appendChild(overlay);
-=======
 
     const trophies = ['🥇', '🥈', '🥉', '🏅'];
 
@@ -835,10 +813,9 @@ class Game {
     }
 
     overlay.appendChild(board);
-    this.gameContainer.appendChild(overlay);
->>>>>>> main
+    document.body.appendChild(overlay);
 
-  
+
     const style = document.createElement('style');
     style.textContent = `
       .fireworks {
@@ -852,20 +829,17 @@ class Game {
     `;
     document.head.appendChild(style);
 
+    // Disable start button during overlay
     const startButton = document.getElementById('startButton');
     if (startButton) startButton.disabled = true;
 
     setTimeout(() => {
       overlay.remove();
+      // Enable start button after overlay disappears
       if (startButton) startButton.disabled = false;
-<<<<<<< HEAD
     }, 10000); // 10 seconds (duration of overlay and victory music)
-=======
-    }, 10000);
->>>>>>> main
+
   }
-
-
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');
     const playerNameInput = document.getElementById('playerName');

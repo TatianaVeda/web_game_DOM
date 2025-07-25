@@ -109,7 +109,6 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 - ⏸️ **Pause Menu:** The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game. The initiator's name is shown to all.
 - 🪄 **Overlay Windows:** All important events (pause, restart, player quit/disconnect, game over) are shown via overlays.
 - 🎮 **Keyboard Controls:** Control your boat with the arrow keys. Keyboard input is smooth and responsive.
-- 🎯 **Movement Constraints:** Player movement is intelligently bounded to prevent going off-screen, ensuring all players remain visible and playable.
 - ⚠️ **Smart Warnings:** Helpful notifications appear when the browser window is too small, with automatic dismissal for better UX.
 - ✨ **Extra Features:** Power-ups (shields, hearts), sound effects, real-time overlays, and a competitive, enjoyable gameplay experience: the winner is determined by skill, speed, and strategy.
 

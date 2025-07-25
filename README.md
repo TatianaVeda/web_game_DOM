@@ -109,16 +109,18 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 - ⏸️ **Pause Menu:** The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game. The initiator's name is shown to all.
 - 🪄 **Overlay Windows:** All important events (pause, restart, player quit/disconnect, game over) are shown via overlays.
 - 🎮 **Keyboard Controls:** Control your boat with the arrow keys. Keyboard input is smooth and responsive.
+- 🎯 **Movement Constraints:** Player movement is intelligently bounded to prevent going off-screen, ensuring all players remain visible and playable.
+- ⚠️ **Smart Warnings:** Helpful notifications appear when the browser window is too small, with automatic dismissal for better UX.
 - ✨ **Extra Features:** Power-ups (shields, hearts), sound effects, real-time overlays, and a competitive, enjoyable gameplay experience: the winner is determined by skill, speed, and strategy.
 
 ## Visual Design & Responsiveness
 
-- **Flexible scaling:** The game field automatically resizes to fit the browser window, maintaining its aspect ratio and always staying fully visible. The field is always centered and maximized, but never exceeds the window size.
-- **Smooth scroll-to-player:** The camera smoothly centers on the player avatar, ensuring the player is always in view, even during fast movement.
-- **Fixed HUD & controls:** All HUD elements (lives, score, timer) and the chat are fixed to the browser window corners and never disappear, regardless of field movement or scaling. Controls are always visible and neatly placed below the game field.
-- **Responsive chat:** The chat window is always anchored to the bottom right, grows as messages appear, and never overlaps the game field.
-- **No scrollbars:** There are never scrollbars inside the game field; all content is always visible and fits the available space.
-- **Adaptive UI:** All interface elements (buttons, HUD, chat) scale down and rearrange for usability on small screens.
+- **Player movement constraints:** Player movement is limited within the actual game container bounds, preventing avatars from going off-screen or disappearing beyond browser edges.
+- **Window size warnings:** The game shows helpful warnings when the browser window is too small for comfortable gameplay, with automatic dismissal after 10 seconds.
+- **Visibility monitoring:** Active monitoring ensures players stay within the visible game area, with automatic repositioning if they go out of bounds.
+- **Fixed HUD & controls:** All HUD elements (lives, score, timer) and controls remain fixed and visible regardless of window scaling.
+- **Responsive design:** Interface elements adapt to different screen sizes while maintaining usability.
+- **No scrollbars:** All content fits within the available space without creating scrollbars.
 
 - **Floating Visual Hints for Key Events:**
   - When a player collects a coin, a floating '+1' appears above their avatar, providing instant feedback.

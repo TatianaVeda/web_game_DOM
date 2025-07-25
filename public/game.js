@@ -8,8 +8,8 @@ class Game {
   constructor() {
     // Core game properties
     this.socket = io();
-     this.chatPlugin = new ChatPlugin(this);
-     this.modePlugin   = new GameModePlugin(this);
+    // this.chatPlugin = new ChatPlugin(this);
+    this.modePlugin = new GameModePlugin(this);
     this.gameContainer = document.getElementById('gameContainer');
     this.scoreBoard = document.getElementById('scoreBoard');
     this.timerDisplay = document.getElementById('timer');
@@ -38,11 +38,12 @@ class Game {
 
     this.setupSocketListeners();
     this.setupControls();
-    
+
     this.setupJoinHandlers();
-    
+
     this.coinManager = new CoinManager(this);
     this.bonusManager = new BonusManager(this);
+<<<<<<< HEAD
     // Scale the field when starting
     this.applyScaleToFit();
     window.addEventListener('resize', () => this.applyScaleToFit());
@@ -66,6 +67,9 @@ class Game {
     container.style.transform = '';
     container.style.transformOrigin = '';
     container.parentElement.style.overflow = 'hidden';
+=======
+   
+>>>>>>> main
   }
 
   renderScene(delta) {
@@ -95,19 +99,22 @@ class Game {
     });
 
 
-    const remaining = Math.max(this.modelTimeLimit - this.modelTimer, 0);
-    const m = Math.floor(remaining / 60);
-    const s = remaining % 60;
-    this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-
-
-if (!this.isPaused) {
-
-    this.updateFloatingTrunk(delta);
-    this.coinManager.renderCoins(delta);
-    this.bonusManager.renderShields(delta);
-    this.bonusManager.renderHearts(delta);
+    if (this.modePlugin.currentMode === 'coins') {
+  const remaining = Math.max(this.modelTimeLimit - this.modelTimer, 0);
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
 }
+
+
+
+    if (!this.isPaused) {
+
+      this.updateFloatingTrunk(delta);
+      this.coinManager.renderCoins(delta);
+      this.bonusManager.renderShields(delta);
+      this.bonusManager.renderHearts(delta);
+    }
 
     this.updateScoreboard();
   }
@@ -144,7 +151,7 @@ if (!this.isPaused) {
         document.getElementById('gameScreen').style.display = 'block';
         this.startGameLoop();
 
-         this.chatPlugin = new ChatPlugin(this);
+        this.chatPlugin = new ChatPlugin(this);
       }
 
       this.updateScoreboard();
@@ -235,6 +242,10 @@ if (!this.isPaused) {
     });
 
     this.socket.on('gameState', (state) => {
+      if (state.mode) {
+  this.modePlugin.currentMode = state.mode;
+  this.modePlugin.configureMode();
+}
       state.players.forEach(sp => {
         const p = this.players.get(sp.id);
         if (!p) return;
@@ -427,6 +438,31 @@ if (!this.isPaused) {
       };
     }
   }
+
+   setupMentionClicks() {
+ 
+    const board = document.getElementById('leaderboard');
+    if (!board) return;
+
+
+    board.addEventListener('click', e => {
+ 
+      const el = e.target.closest('.player-score');
+      if (!el) return;
+
+      const name = el.dataset.name;
+      if (!name) return;
+
+      const chat = this.chatPlugin;
+      if (!chat) return;
+
+      if (!chat.isOpen) chat.toggle();
+
+      chat.input.value += `@${name} `;
+      chat.input.focus();
+    });
+  }
+
 
   togglePause() {
     // You can press Pause always when player is in the game
@@ -693,17 +729,15 @@ if (!this.isPaused) {
     this.socket.emit('resetGame', this.playerName);
   }
 
-  showResults() {
-    const counts = window.coinManager.playerCounts;
-    const arr = Array.from(this.players.values()).map(p => ({
-      id: p.id,
-      name: p.name + (p.isHost ? ' (Host)' : ''),
-      count: counts[p.id] || 0
-    }));
-    arr.sort((a, b) => b.count - a.count);
-    const top4 = arr.slice(0, 4);
+  showResults(data) {
+    const { mode, ranking, winner } = data;
+ 
+    const old = document.getElementById('resultsOverlay');
+    if (old) old.remove();
+
     const overlay = document.createElement('div');
     overlay.id = 'resultsOverlay';
+<<<<<<< HEAD
     overlay.style.cssText = `
       position: fixed;
       top: 0; left: 0;
@@ -717,12 +751,30 @@ if (!this.isPaused) {
       font-family: sans-serif;
       z-index: 10000;
     `;
+=======
+    Object.assign(overlay.style, {
+      position: 'absolute',
+      top: 0, left: 0,
+      width: '100%', height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      color: 'white',
+      fontFamily: 'sans-serif',
+      zIndex: 10000
+    });
+
+>>>>>>> main
     const fireworks = document.createElement('div');
     fireworks.className = 'fireworks';
     overlay.appendChild(fireworks);
+
     const board = document.createElement('div');
     board.style.textAlign = 'center';
     board.style.marginTop = '20px';
+<<<<<<< HEAD
     const trophies = ['🥇', '🥈', '🥉', '🏅'];
     top4.forEach((p, i) => {
       const row = document.createElement('div');
@@ -738,7 +790,55 @@ if (!this.isPaused) {
     overlay.appendChild(board);
 
     document.body.appendChild(overlay);
+=======
 
+    const trophies = ['🥇', '🥈', '🥉', '🏅'];
+
+    if (mode === 'survival') {
+     
+      ranking.forEach((playerId, idx) => {
+        const p = this.players.get(playerId);
+        const row = document.createElement('div');
+        row.style.fontSize = '24px';
+        row.style.margin = '8px 0';
+        row.innerHTML = `
+        <span style="font-size:48px">${trophies[idx] || '🏅'}</span>
+        <strong>${idx + 1}.</strong>
+        ${p.name} — <strong>${p.lives} ❤️</strong>
+      `;
+        board.appendChild(row);
+      });
+    }
+    else if (mode === 'coins' || mode === 'infection') {
+   
+      const counts = window.coinManager.playerCounts;
+      const arr = Array.from(this.players.values()).map(p => ({
+        id: p.id,
+        name: p.name + (p.isHost ? ' (Host)' : ''),
+        count: counts[p.id] || 0
+      }));
+    
+      arr.sort((a, b) => b.count - a.count);
+      const top4 = arr.slice(0, 4);
+
+      top4.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.style.fontSize = '24px';
+        row.style.margin = '8px 0';
+        row.innerHTML = `
+        <span style="font-size:48px">${trophies[i] || '🏅'}</span>
+        <strong>${i + 1}.</strong>
+        ${p.name} — <strong>${p.count} 💰</strong>
+      `;
+        board.appendChild(row);
+      });
+    }
+
+    overlay.appendChild(board);
+    this.gameContainer.appendChild(overlay);
+>>>>>>> main
+
+  
     const style = document.createElement('style');
     style.textContent = `
       .fireworks {
@@ -752,16 +852,19 @@ if (!this.isPaused) {
     `;
     document.head.appendChild(style);
 
-    // Disable start button during overlay
     const startButton = document.getElementById('startButton');
     if (startButton) startButton.disabled = true;
 
     setTimeout(() => {
       overlay.remove();
-      // Enable start button after overlay disappears
       if (startButton) startButton.disabled = false;
+<<<<<<< HEAD
     }, 10000); // 10 seconds (duration of overlay and victory music)
+=======
+    }, 10000);
+>>>>>>> main
   }
+
 
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');

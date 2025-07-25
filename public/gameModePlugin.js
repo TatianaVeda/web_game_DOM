@@ -56,13 +56,15 @@ export default class GameModePlugin {
 
     this.sel = document.createElement('select');
     this.sel.id = 'modeSelect';
-    ['coins', 'survival', 'infection'].forEach(mode => {
+    ['coins', 'survival',
+      // 'infection'
+    ].forEach(mode => {
       const opt = document.createElement('option');
       opt.value = mode;
       opt.textContent = {
-        coins:     'Coin Collection',
-        survival:  'Survival',
-        infection: 'Infection'
+        coins: 'Coin Collection',
+        survival: 'Survival',
+        // infection: 'Infection'
       }[mode];
       this.sel.appendChild(opt);
     });
@@ -86,40 +88,40 @@ export default class GameModePlugin {
   }
 
   configureMode() {
-  const mode = this.currentMode;
+    const mode = this.currentMode;
 
-  const coinLayer = document.getElementById('coinLayer');
-  if (coinLayer) {
-    coinLayer.style.display = mode === 'coins' ? 'block' : 'none';
-  }
-
-  const timerEl = document.getElementById('timer');
-  if (timerEl) {
-    timerEl.style.display = mode === 'coins' ? 'block' : 'none';
-  }
-
-  const timerSel = document.getElementById('timerSelector');
-  if (timerSel) {
-    timerSel.style.display = mode === 'coins' ? 'block' : 'none';
-  }
-
-  if (mode === 'coins') {
-    console.log('[GameMode] switched to COINS: Standard coin collection mode');
-  }
-  else if (mode === 'survival') {
-    console.log('[GameMode] switched to SURVIVAL: Survive as long as possible');
-
-  }
-  else if (mode === 'infection') {
-    console.log('[GameMode] switched to INFECTION: Infect others!');
-    const mine = this.game.players.get(this.game.socketId);
-    if (mine?.infected) {
-      this.markInfected();
+    const coinLayer = document.getElementById('coinLayer');
+    if (coinLayer) {
+      coinLayer.style.display = mode === 'coins' ? 'block' : 'none';
     }
-  }
 
-  this.game.coinManager.updateRanking();
-}
+    const timerEl = document.getElementById('timer');
+    if (timerEl) {
+      timerEl.style.display = mode === 'coins' ? 'block' : 'none';
+    }
+
+    const timerSel = document.getElementById('timerSelector');
+    if (timerSel) {
+      timerSel.style.display = mode === 'coins' ? 'block' : 'none';
+    }
+
+    if (mode === 'coins') {
+      console.log('[GameMode] switched to COINS: Standard coin collection mode');
+    }
+    else if (mode === 'survival') {
+      console.log('[GameMode] switched to SURVIVAL: Survive as long as possible');
+
+    }
+    else if (mode === 'infection') {
+      console.log('[GameMode] switched to INFECTION: Infect others!');
+      const mine = this.game.players.get(this.game.socketId);
+      if (mine?.infected) {
+        this.markInfected();
+      }
+    }
+
+    this.game.coinManager.updateRanking();
+  }
 
 
   // ----- Infection helpers -----

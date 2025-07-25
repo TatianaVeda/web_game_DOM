@@ -1,10 +1,7 @@
 /* file style.css */
 .floating-trunk {
   position: absolute;
-  will-change: transform;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  transition: transform 16ms linear;
+  /* Removed will-change and transform to prevent conflicts with JavaScript animations */
 }
 
 body, html {
@@ -66,6 +63,13 @@ body, html {
   border: 2px solid #444;
   overflow: hidden;
   box-sizing: border-box;
+  /* Explicitly hide scrollbars */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.game-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 /* HUD fixed on top of the window */
@@ -109,11 +113,8 @@ body, html {
 
 /* Animations of appearance */
 .coin, .bonus, .player-ball {
-  animation: pop-in 0.3s;
-}
-@keyframes pop-in {
-  from { transform: scale(0.5); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  position: absolute;
+  /* Removed will-change and transform to prevent conflicts with JavaScript animations */
 }
 
 .player-ball {
@@ -130,10 +131,7 @@ body, html {
   text-align: center;
   word-wrap: break-word;
   padding: 5px;
-  will-change: transform;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  transition: transform 16ms linear;
+  /* Removed will-change and transform to prevent conflicts with JavaScript animations */
   user-select: none;
 }
 
@@ -306,11 +304,13 @@ body, html {
 .player-ball.infected {
   box-shadow: 0 0 10px 3px rgba(255, 0, 0, 0.7);
   animation: infected-pulse 1s infinite alternate;
+  /* Ensure animation doesn't conflict with movement transforms */
+  transform-origin: center;
 }
 
 @keyframes infected-pulse {
-  from { transform: scale(1); }
-  to   { transform: scale(1.05); }
+  from { box-shadow: 0 0 10px 3px rgba(255, 0, 0, 0.7); }
+  to   { box-shadow: 0 0 15px 5px rgba(255, 0, 0, 0.9); }
 }
 
 .floating-plus {
@@ -349,6 +349,7 @@ body, html {
   to   { opacity: 0; transform: scale(0.8) translateY(-36px); }
 }
 
+/* Temporarily disabled shake animation to fix screen jitter
 .player-ball.shake {
   animation: shake 0.5s;
 }
@@ -360,6 +361,7 @@ body, html {
   80% { transform: translateX(8px); }
   100% { transform: translateX(0); }
 }
+*/
 
 /* Media queries for small screens */
 @media (max-width: 600px) {

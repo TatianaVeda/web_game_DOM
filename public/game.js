@@ -30,8 +30,14 @@ class Game {
     this.modelTimeLimit = 0;
     this.lastRender = 0; // timestamp of last render
     this.keys = new Set(); // keys currently pressed
-    this.lastMoveSent = 0; // timestamp of last move sent to server
-    this.moveThrottle = 1000 / 60; // player's movement throttle in milliseconds
+    this.lastMoveSent = 0;
+    this.moveThrottle = 1000 / 60; // Normal speed 60 FPS
+    this.socketId = null;
+    this.chatPlugin = null;
+    this.lastResizeUpdate = 0;
+    this.lastScrollUpdate = 0;
+    this.lastFloatingHint = 0;
+    this.floatingHintThrottle = 200; // minimum interval between hints
 
     this.loopId = null;
     this.isActive = false;
@@ -52,9 +58,14 @@ class Game {
   }
 
   applyScaleToFit() {
+    // Throttling to prevent shaking when window is resized
+    const now = performance.now();
+    if (this.lastResizeUpdate && now - this.lastResizeUpdate < 100) return; // 10 FPS max
+    this.lastResizeUpdate = now;
+    
     const container = this.gameContainer;
     if (!container) return;
-    const aspect = 3 / 2; // или твой динамический aspect-ratio
+    const aspect = 3 / 2; // dynamic aspect-ratio
     const controls = document.querySelector('.game-controls');
     const controlsHeight = controls ? controls.offsetHeight : 0;
     const availableHeight = window.innerHeight - controlsHeight - 32; // 32px — небольшой отступ
@@ -62,18 +73,21 @@ class Game {
     let h = availableHeight;
     if (w / h > aspect) w = h * aspect;
     else h = w / aspect;
+    
+    // Check if we really need to change the size
+    const currentWidth = parseFloat(container.style.width) || container.offsetWidth;
+    const currentHeight = parseFloat(container.style.height) || container.offsetHeight;
+    if (Math.abs(w - currentWidth) < 5 && Math.abs(h - currentHeight) < 5) return;
+    
     container.style.width = w + 'px';
     container.style.height = h + 'px';
     container.style.transform = '';
     container.style.transformOrigin = '';
     container.parentElement.style.overflow = 'hidden';
-
   }
 
   renderScene(delta) {
-
     this.players.forEach(player => {
-
       player.element.style.transform =
         `translate(${player.x}px, ${player.y}px)`;
 
@@ -96,18 +110,14 @@ class Game {
       }
     });
 
-
     if (this.modePlugin.currentMode === 'coins') {
-  const remaining = Math.max(this.modelTimeLimit - this.modelTimer, 0);
-  const m = Math.floor(remaining / 60);
-  const s = remaining % 60;
-  this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
-}
-
-
+      const remaining = Math.max(this.modelTimeLimit - this.modelTimer, 0);
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    }
 
     if (!this.isPaused) {
-
       this.updateFloatingTrunk(delta);
       this.coinManager.renderCoins(delta);
       this.bonusManager.renderShields(delta);
@@ -170,8 +180,9 @@ class Game {
         // Floating hint '💔' with shake animation
         if (existingPlayer.element) {
           this.showFloatingPlus(existingPlayer.x, existingPlayer.y, '💔');
-          existingPlayer.element.classList.add('shake');
-          setTimeout(() => existingPlayer.element.classList.remove('shake'), 500);
+          // Temporarily disabled shake animation to fix screen jitter
+          // existingPlayer.element.classList.add('shake');
+          // setTimeout(() => existingPlayer.element.classList.remove('shake'), 500);
         }
       }
 
@@ -411,6 +422,7 @@ class Game {
     window.addEventListener('keydown', (e) => {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Escape'].includes(e.key)) {
         e.preventDefault();
+        
         if (e.key === 'Escape') {
           this.togglePause();
           return;
@@ -606,32 +618,61 @@ class Game {
     const overlay = document.createElement('div');
     overlay.id = 'pauseOverlay';
     overlay.style.cssText = `
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.3);
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       color: white; font-size: 24px; z-index: 1000;
     `;
 
     if (isPauseMenu && playerName) {
       overlay.innerHTML = `
-        <div>
-          <h2>Game paused by ${playerName}</h2>
-          <button id="resumeBtn">Continue</button>
-          <button id="restartBtn">Restart</button>
-          <button id="quitBtn">Quit</button>
+        <div style="
+          background: rgba(0,0,0,0.8); 
+          padding: 40px 60px; 
+          border-radius: 15px; 
+          text-align: center;
+          min-width: 300px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        ">
+          <h2 style="margin: 0 0 20px 0; color: #fff;">Game paused by ${playerName}</h2>
+          <button id="resumeBtn" style="
+            margin: 8px; padding: 12px 24px; 
+            background: #4CAF50; color: white; 
+            border: none; border-radius: 6px; 
+            cursor: pointer; font-size: 16px;
+          ">Continue</button>
+          <button id="restartBtn" style="
+            margin: 8px; padding: 12px 24px; 
+            background: #FF9800; color: white; 
+            border: none; border-radius: 6px; 
+            cursor: pointer; font-size: 16px;
+          ">Restart</button>
+          <button id="quitBtn" style="
+            margin: 8px; padding: 12px 24px; 
+            background: #f44336; color: white; 
+            border: none; border-radius: 6px; 
+            cursor: pointer; font-size: 16px;
+          ">Quit</button>
         </div>
       `;
     } else {
       // Only show host's name in the overlay
       overlay.innerHTML = `
-        <div>
-          <h2>${message}</h2>
+        <div style="
+          background: rgba(0,0,0,0.8); 
+          padding: 30px 50px; 
+          border-radius: 15px; 
+          text-align: center;
+          min-width: 250px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        ">
+          <h2 style="margin: 0; color: #fff;">${message}</h2>
         </div>
       `;
     }
 
-    this.gameContainer.appendChild(overlay);
+    document.body.appendChild(overlay);
 
     // Button handlers for pause menu
     if (isPauseMenu && playerName) {
@@ -773,7 +814,6 @@ class Game {
     const trophies = ['🥇', '🥈', '🥉', '🏅'];
 
     if (mode === 'survival') {
-     
       ranking.forEach((playerId, idx) => {
         const p = this.players.get(playerId);
         const row = document.createElement('div');
@@ -815,7 +855,6 @@ class Game {
     overlay.appendChild(board);
     document.body.appendChild(overlay);
 
-
     const style = document.createElement('style');
     style.textContent = `
       .fireworks {
@@ -838,8 +877,8 @@ class Game {
       // Enable start button after overlay disappears
       if (startButton) startButton.disabled = false;
     }, 10000); // 10 seconds (duration of overlay and victory music)
-
   }
+
   setupJoinHandlers() {
     const joinButton = document.getElementById('joinButton');
     const playerNameInput = document.getElementById('playerName');
@@ -863,7 +902,6 @@ class Game {
       });
     });
   }
-
 
   updateFloatingTrunk(delta) {
     for (let i = this.floatingTrunk.length - 1; i >= 0; i--) {
@@ -894,7 +932,6 @@ class Game {
     }
   }
 
-
   updateLivesIndicator(player) {
     if (player.id === this.socketId) {
       const hearts = Array(player.lives).fill('❤️').join(' ');
@@ -912,31 +949,62 @@ class Game {
   }
 
   centerPlayerInView(player, speed) {
+    // Smooth throttling for smooth scroll-to-player
+    const now = performance.now();
+    if (this.lastScrollUpdate && now - this.lastScrollUpdate < 300) return; //  (60 FPS max) Increased to 300 ms for stability (60 FPS max)
+    this.lastScrollUpdate = now;
+    
     const container = this.gameContainer;
     if (!container || !player || !player.element) return;
+    
     // Player coordinates relative to container
     const playerX = player.x;
     const playerY = player.y;
     const playerSize = player.element.offsetWidth || 30;
+    
     // Visible area sizes (with scale)
     const scale = parseFloat(container.style.transform?.match(/scale\(([^)]+)\)/)?.[1] || '1');
     const visibleWidth = container.clientWidth / (scale || 1);
     const visibleHeight = container.clientHeight / (scale || 1);
+    
     // Center player
     const targetScrollLeft = playerX - visibleWidth / 2 + playerSize / 2;
     const targetScrollTop = playerY - visibleHeight / 2 + playerSize / 2;
-    // Select scroll behavior based on speed
-    let behavior = 'smooth';
-    if (speed !== undefined && speed > 0.6) { // speed threshold can be adjusted
-      behavior = 'smooth';
+    
+    // Check if we really need to scroll (higher threshold for smoothness)
+    const currentScrollLeft = container.scrollLeft;
+    const currentScrollTop = container.scrollTop;
+    const scrollThreshold = 150; // Increased threshold to prevent shaking
+    
+    const needsHorizontalScroll = Math.abs(targetScrollLeft - currentScrollLeft) > scrollThreshold;
+    const needsVerticalScroll = Math.abs(targetScrollTop - currentScrollTop) > scrollThreshold;
+    
+    if (!needsHorizontalScroll && !needsVerticalScroll) return;
+    
+    // Check if the player is moving too fast (long press)
+    if (speed > 2.0) {
+      // When moving fast, use auto for instant scroll
+      const behavior = 'auto';
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+      
+      container.scrollTo({
+        left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
+        top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
+        behavior
+      });
+    } else {
+      // When moving slowly, use smooth
+      const behavior = 'smooth';
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+      
+      container.scrollTo({
+        left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
+        top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
+        behavior
+      });
     }
-    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-    const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-    container.scrollTo({
-      left: Math.min(Math.max(0, targetScrollLeft), maxScrollLeft),
-      top: Math.min(Math.max(0, targetScrollTop), maxScrollTop),
-      behavior
-    });
   }
 
   showFloatingPlus(x, y, text = '+1') {

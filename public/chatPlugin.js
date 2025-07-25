@@ -35,7 +35,7 @@ export default class ChatPlugin {
         bottom: 84px; right: 36px;
         width: 380px;
         min-height: 60px;
-        max-height: 60vh;
+        max-height: 40vh;
         height: auto;
         background: rgba(0,0,0,0.8); color: #fff;
         display: none; flex-direction: column;

@@ -94,6 +94,12 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 - **Pause & Menu:**  
   Press `Esc` or the **Pause** button to open the menu. You can pause, restart, or quit the game. The name of the player who initiates these actions is shown to all.
 
+## Game Modes
+
+- **💰Coins:** The goal of this mode is to collect as many coins as possible. The game continues until only one player remains or the time set by the host runs out.
+
+- **❤️Survival:** The goal of this mode is to stay alive. The game continues until only one player remains. The speed of the logs increases every 20 seconds.
+
 ## Features
 
 - 🌐 **Real-Time Synchronization:** Floating trunks move across the river, and all players must dodge them in real time. All players see each other's positions, actions, and scores/lives.
@@ -101,9 +107,10 @@ Move the boat with ⬆️ `up`, ⬅️ `left`, ⬇️ `down` and ➡️ `right` 
 - 👥 **Equal Opportunity:** All boats have identical abilities and movement speed; every player has an equal chance to win.
 - 🧑‍🤝‍🧑 **Multiplayer (2-4 players):** Supports 2, 3, or 4 players per session. Each player can join from their own computer/browser via a provided URL or IP address.  
 - 🎵 **Sound Effects:** The game includes sound effects for game start, pause, player hit, collecting coins and victory🏆. Make sure to have your speakers on for the best experience!
-- ⏳ **Game Duration:** Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted. The host can choose the duration of the round before starting the game. 
-- 🏆 **Leaderboard:** Real-time leaderboard shows players' coin counts and lives of all players.
-- 💬 **In-game Chat:** Players can chat with each other in real time during the game.
+- ⏳ **Game Duration:** Each game session is timed. The timer is visible to all players and counts up from the start of the game. The duration of the game is displayed at the end, so you can see how long each round lasted. The host can choose the duration of the round before starting the game. The game may also end early if only one player remains alive.
+- 🏆 **Leaderboard:** Real-time leaderboard shows players' coin counts or lives of all players.
+- 💬 **In-game Chat:** Players can chat with each other in real time during the game. Clicking a player's name on the leaderboard automatically adds their name to the chat input field with an `@` mention for easy referencing.  
+Emoji can also be inserted using the built-in emoji picker (😊 icon).
 - 🕹️ **Game Modes:** Multiple game modes available (e.g. coins, survival, infection) — host can select the mode.
 - 🚫 **No Canvas:** The game uses only DOM elements for rendering and animation. Designed to run at 60 FPS.
 - ⏸️ **Pause Menu:** The game features an in-game pause menu (press "Pause" or "Esc"), allowing you to pause, restart, or quit the game. The initiator's name is shown to all.

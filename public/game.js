@@ -6,6 +6,11 @@ import GameModePlugin from './gameModePlugin.js';
 
 class Game {
   constructor() {
+    // Game field constants (matching server GAMEWINDOW_SIZE)
+    this.GAME_WIDTH = 1200;
+    this.GAME_HEIGHT = 800;
+    this.TRUNK_REMOVAL_OFFSET = 50; // Same as server: GAMEWINDOW_SIZE.y + 50
+    
     // Core game properties
     this.socket = io();
     // this.chatPlugin = new ChatPlugin(this);
@@ -68,8 +73,8 @@ class Game {
     if (!container) return;
     
     // Fixed game field dimensions
-    const gameWidth = 1200;
-    const gameHeight = 800;
+    const gameWidth = this.GAME_WIDTH;
+    const gameHeight = this.GAME_HEIGHT;
     
     // Get available space with optimized margins
     const controls = document.querySelector('.game-controls');
@@ -122,6 +127,11 @@ class Game {
   }
 
   renderScene(delta) {
+    // Protect against invalid delta values
+    if (!delta || delta < 0 || delta > 1000) {
+      delta = 16; // Default to ~60 FPS if delta is invalid
+    }
+
     this.players.forEach(player => {
       player.element.style.transform =
         `translate(${player.x}px, ${player.y}px)`;
@@ -157,8 +167,11 @@ class Game {
       this.timerDisplay.textContent = `${m}:${s.toString().padStart(2, '0')}`;
     }
 
+    // Always update floating trunks (they handle pause internally)
+    this.updateFloatingTrunk(delta);
+    
+    // Only update other game objects if not paused
     if (!this.isPaused) {
-      this.updateFloatingTrunk(delta);
       this.coinManager.renderCoins(delta);
       this.bonusManager.renderShields(delta);
       this.bonusManager.renderHearts(delta);
@@ -313,9 +326,10 @@ class Game {
 
     this.socket.on('gameState', (state) => {
       if (state.mode) {
-  this.modePlugin.currentMode = state.mode;
-  this.modePlugin.configureMode();
-}
+        this.modePlugin.currentMode = state.mode;
+        this.modePlugin.configureMode();
+      }
+      
       state.players.forEach(sp => {
         const p = this.players.get(sp.id);
         if (!p) return;
@@ -346,7 +360,10 @@ class Game {
 
       this.modelTimer = state.timer;
       this.modelTimeLimit = state.timeLimit || 0;
+      
+      // Simple synchronization with server state
       this.floatingTrunk = state.floatingTrunk;
+      
       this.modelCoins = state.coins;
       this.modelShields = state.shields;
       this.modelHearts = state.hearts;
@@ -1009,27 +1026,26 @@ class Game {
   }
 
   updateFloatingTrunk(delta) {
+    // Don't update positions if game is paused, but still check for removal
+    const shouldUpdatePositions = !this.isPaused;
+    
     for (let i = this.floatingTrunk.length - 1; i >= 0; i--) {
       const obj = this.floatingTrunk[i];
 
-      obj.y += obj.speed * (delta / 1000);
+      // Update position only if not paused
+      if (shouldUpdatePositions) {
+        obj.y += obj.speed * (delta / 1000);
+      }
 
-      // Improved removal condition - check if trunk is completely below the game area
-      if (obj.gathered || obj.y > 800 + obj.size) { // Use fixed game height instead of clientHeight
+      // Synchronized removal condition with server (GAMEWINDOW_SIZE.y + 50 = 850)
+      if (obj.gathered || obj.y > this.GAME_HEIGHT + this.TRUNK_REMOVAL_OFFSET) {
         const el = document.getElementById(obj.id);
         if (el) el.remove();
         this.floatingTrunk.splice(i, 1);
         continue;
       }
 
-      // Additional safety check - remove if trunk is stuck at bottom
-      if (obj.y > 900) { // Extra safety margin
-        const el = document.getElementById(obj.id);
-        if (el) el.remove();
-        this.floatingTrunk.splice(i, 1);
-        continue;
-      }
-
+      // Create DOM element if it doesn't exist
       let el = document.getElementById(obj.id);
       if (!el) {
         el = document.createElement('div');
@@ -1040,9 +1056,17 @@ class Game {
         this.gameContainer.appendChild(el);
       }
 
+      // Update element properties
       el.style.width = `${obj.size}px`;
       el.style.height = `${obj.size}px`;
       el.style.transform = `translate(${obj.x}px, ${obj.y}px)`;
+      
+      // hidden object out of bounds
+      if (obj.y > this.GAME_HEIGHT) {
+        el.style.display = 'none';
+      } else {
+        el.style.display = 'block';
+      }
     }
   }
 

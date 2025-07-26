@@ -180,6 +180,31 @@ body, html {
   color: #fff;
 }
 
+@media (max-width: 600px) {
+  .game-controls {
+    max-width: 100%;
+    gap: 6px 8px;
+  }
+  .game-controls button,
+  .game-controls select {
+    min-width: 80px;
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+}
+
+@media (max-width: 400px) {
+  .game-controls {
+    gap: 4px 4px;
+  }
+  .game-controls button,
+  .game-controls select {
+    min-width: 70px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+}
+
 .game-controls button:disabled {
   background: #e0e0e0;
   color: #aaa;

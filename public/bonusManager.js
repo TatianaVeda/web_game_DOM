@@ -146,6 +146,12 @@ export default class BonusManager {
       const el = this.shields.get(b.id);
       if (el) {
         el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        // hidden object out fo bounds
+        if (b.y > 850) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+        }
       }
     });
   }
@@ -159,6 +165,12 @@ export default class BonusManager {
       const el = this.hearts.get(b.id);
       if (el) {
         el.style.transform = `translate(${b.x}px, ${b.y}px)`;
+        // hidden object out of bounds
+        if (b.y > 850) {
+          el.style.display = 'none';
+        } else {
+          el.style.display = 'block';
+        }
       }
     });
   }

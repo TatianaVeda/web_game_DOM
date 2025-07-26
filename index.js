@@ -145,7 +145,9 @@ io.on('connection', (socket) => {
 
     const spacing = 100;
     const startX = 200;
-    const y = 500;
+    // Spawn players in the center of the screen instead of fixed Y position
+    const centerY = GAMEWINDOW_SIZE.y / 2; // 400 instead of 500
+    const y = centerY;
     // collect all taken X coordinates
     const takenX = new Set(Array.from(gameState.players.values()).map(p => p.x));
     // find the first free position in the row
@@ -180,7 +182,7 @@ io.on('connection', (socket) => {
 
     socket.emit('gameState', {
       mode:          gameState.mode,
-      floatingTrunk: gameState.floatingTrunk,
+      floatingTrunk: [], // clean up floatingTrunk - it should only appear after game start
       coins: gameState.coins,
       shields: gameState.shields,
       hearts: gameState.hearts,

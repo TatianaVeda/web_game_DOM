@@ -142,6 +142,6 @@ Emoji can also be inserted using the built-in emoji picker (😊 icon).
 - Ihor Shaposhnik
 - Tatiana Vedishcheva
 
-If you have any questions or suggestions, feel free to contact us on Discord!
+If you have any questions or suggestions, feel free to contact us!
 
 ---
